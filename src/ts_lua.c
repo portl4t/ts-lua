@@ -6,6 +6,7 @@
 
 #include "ts_lua_util.h"
 
+#define TS_LUA_MAX_SCRIPT_FNAME_LENGTH          1024
 #define TS_LUA_FUNCTION_REMAP                   "do_remap"
 #define TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE   "do_cache_lookup_complete"
 #define TS_LUA_FUNCTION_SEND_REQUEST            "do_send_request"
@@ -15,7 +16,7 @@
 
 typedef struct {
     pthread_key_t lua_state_key;
-    char *script_file;
+    char script_file[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
 } ts_lua_conf;
 
 
@@ -28,10 +29,16 @@ ts_lua_get_thread_vm(ts_lua_conf *lua_conf)
     if (l == NULL) {
         l = ts_lua_new_state();
 
-        luaL_openlibs(l);
-
         ret = luaL_loadfile(l, lua_conf->script_file);
+        if (ret) {
+            fprintf(stderr, "luaL_loadfile failed: %s\n", lua_tostring(l, -1));
+        }
+
         ret = lua_pcall(l, 0, 0, 0);
+        if (ret) {
+            fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
+        }
+
         pthread_setspecific(lua_conf->lua_state_key, l);
     }
 
@@ -68,7 +75,7 @@ TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_s
         return TS_ERROR;
     }
 
-    conf->script_file = argv[2];
+    sprintf(conf->script_file, "%s", argv[2]);
 
     *ih = conf;
 
@@ -85,8 +92,9 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int             ret;
+    int             ret, match;
     lua_State       *lua_thread;
+    lua_State       *l;
     ts_lua_conf     *lua_conf;
     ts_lua_ctx      *ctx;
 
@@ -103,12 +111,24 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
     ts_lua_set_ctx(ctx->lua, ctx);
 
-    lua_getglobal(lua_thread, TS_LUA_FUNCTION_REMAP);
-    if (lua_type(lua_thread, -1) != LUA_TFUNCTION) {
+    l = ctx->lua;
+
+    lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
+    if (lua_type(l, -1) != LUA_TFUNCTION) {
         return TSREMAP_NO_REMAP;
     }
 
-    ret = lua_pcall(lua_thread, 1, 1, 0);
+    ret = lua_pcall(l, 0, 1, 0);
+    if (ret) {
+        fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
+    }
+
+    match = lua_tointeger(l, -1);
+    lua_pop(l, 1);
+
+    if (match) {
+        TSDebug("ts_lua", "header matches :)");
+    }
 
     return TSREMAP_NO_REMAP;
 }
