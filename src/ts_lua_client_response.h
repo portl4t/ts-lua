@@ -1,6 +1,6 @@
 
-#ifndef _TS_LUA_HEADERS_H
-#define _TS_LUA_HEADERS_H
+#ifndef _TS_LUA_CLIENT_RESPONSE_H
+#define _TS_LUA_CLIENT_RESPONSE_H
 
 #include "ts_lua_common.h"
 

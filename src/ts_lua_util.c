@@ -1,6 +1,7 @@
 
 #include "ts_lua_util.h"
 #include "ts_lua_client_request.h"
+#include "ts_lua_client_response.h"
 
 static void ts_lua_init_registry(lua_State *L);
 static void ts_lua_init_globals(lua_State *L);
@@ -84,6 +85,7 @@ ts_lua_inject_ts_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_client_request_api(L);
+    ts_lua_inject_client_response_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");
@@ -129,10 +131,17 @@ ts_lua_create_http_ctx(ts_lua_thread_ctx *thread_ctx)
     memset(http_ctx, 0, sizeof(ts_lua_http_ctx));
 
     base = lua_gettop(L);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+//    lua_rawget(L, LUA_REGISTRYINDEX);
 
     http_ctx->lua = lua_newthread(L);
-    http_ctx->ref = luaL_ref(L, -2);
+
+//   int t1 = lua_type(L, -1);
+//   int t2 = lua_type(L, -2);
+
+//    if (t1 == t2)
+//        return NULL;
+
+    http_ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
     lua_settop(L, base);
 
     http_ctx->th_ctx = thread_ctx;

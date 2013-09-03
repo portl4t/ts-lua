@@ -133,7 +133,7 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int             ret, base;
+    int             ret, base1, base2;
 
     TSCont          contp;
     lua_State       *L;
@@ -177,9 +177,12 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
         case 0:
         default:
-            lua_rawget(L, LUA_REGISTRYINDEX);       // reclaim the newthread
-            luaL_unref(L, -1, http_ctx->ref);
-            lua_pop(L, 1);
+            base1 = lua_gettop(L);
+//            lua_rawget(L, LUA_REGISTRYINDEX);       // reclaim the newthread
+            luaL_unref(L, LUA_REGISTRYINDEX, http_ctx->ref);
+            base2 = lua_gettop(L);
+            lua_settop(L, base1);
+//            lua_pop(L, 1);
 
             TSfree(http_ctx);
             break;

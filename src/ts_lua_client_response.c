@@ -83,7 +83,7 @@ ts_lua_client_response_header_set(lua_State *L)
 {
     const char  *key;
     const char  *val;
-    int         val_len;
+    size_t      val_len;
     size_t      key_len;
 
     TSMLoc      field_loc;
