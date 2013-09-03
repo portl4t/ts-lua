@@ -42,20 +42,20 @@ ts_lua_client_request_header_get(lua_State *L)
     size_t      key_len;
 
     TSMLoc      field_loc;
-    ts_lua_ctx  *ctx;
+    ts_lua_http_ctx  *http_ctx;
 
-    ctx = ts_lua_get_ctx(L);
+    http_ctx = ts_lua_get_http_ctx(L);
 
     /*  we skip the first argument that is the table */
     key = luaL_checklstring(L, 2, &key_len);
 
     if (key && key_len) {
 
-        field_loc = TSMimeHdrFieldFind(ctx->client_request_bufp, ctx->client_request_hdrp, key, key_len);
+        field_loc = TSMimeHdrFieldFind(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, key, key_len);
         if (field_loc) {
-            val = TSMimeHdrFieldValueStringGet(ctx->client_request_bufp, ctx->client_request_hdrp, field_loc, -1, &val_len);
+            val = TSMimeHdrFieldValueStringGet(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc, -1, &val_len);
             lua_pushlstring(L, val, val_len);
-            TSHandleMLocRelease(ctx->client_request_bufp, ctx->client_request_hdrp, field_loc);
+            TSHandleMLocRelease(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc);
 
         } else {
             lua_pushnil(L);

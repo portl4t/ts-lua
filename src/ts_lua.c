@@ -20,13 +20,16 @@ typedef struct {
 } ts_lua_conf;
 
 
-lua_State *
-ts_lua_get_thread_vm(ts_lua_conf *lua_conf)
+ts_lua_thread_ctx *
+ts_lua_get_thread_ctx(ts_lua_conf *lua_conf)
 {
-    int         ret;
-    lua_State   *l = (lua_State*)pthread_getspecific(lua_conf->lua_state_key);
+    int                 ret;
+    ts_lua_thread_ctx   *thread_ctx;
+    lua_State           *l;
 
-    if (l == NULL) {
+    thread_ctx = (ts_lua_thread_ctx*)pthread_getspecific(lua_conf->lua_state_key);
+
+    if (thread_ctx == NULL) {
         l = ts_lua_new_state();
 
         ret = luaL_loadfile(l, lua_conf->script_file);
@@ -39,10 +42,48 @@ ts_lua_get_thread_vm(ts_lua_conf *lua_conf)
             fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
         }
 
-        pthread_setspecific(lua_conf->lua_state_key, l);
+        thread_ctx = ts_lua_init_thread(l);
+        pthread_setspecific(lua_conf->lua_state_key, thread_ctx);
     }
 
-    return l;
+    return thread_ctx;
+}
+
+static int
+ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
+{
+    int                 ret;
+    TSHttpTxn           txnp = (TSHttpTxn)edata;
+    lua_State           *l;
+    ts_lua_http_ctx     *http_ctx;
+
+    http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
+    l = http_ctx->lua;
+
+    switch (event) {
+        case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
+
+            lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
+            if (lua_type(l, -1) == LUA_TFUNCTION) {
+                lua_pcall(l, 0, 1, 0);
+                ret = lua_tointeger(l, -1);
+                lua_pop(l, 1);
+            }
+
+            break;
+
+        case TS_EVENT_HTTP_TXN_CLOSE:
+
+            ts_lua_destroy_http_ctx(http_ctx);
+            TSContDestroy(contp);
+            break;
+
+        default:
+            break;
+    }
+
+    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+    return 0;
 }
 
 TSReturnCode
@@ -92,43 +133,59 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int             ret, match;
-    lua_State       *lua_thread;
+    int             ret, base;
+
+    TSCont          contp;
+    lua_State       *L;
     lua_State       *l;
     ts_lua_conf     *lua_conf;
-    ts_lua_ctx      *ctx;
+
+    ts_lua_thread_ctx    *thread_ctx;
+    ts_lua_http_ctx      *http_ctx;
 
     lua_conf = (ts_lua_conf*)ih;
-    lua_thread = ts_lua_get_thread_vm(lua_conf);
 
-    ctx = TSmalloc(sizeof(ts_lua_ctx));
-    memset(ctx, 0, sizeof(ts_lua_ctx));
+    thread_ctx = ts_lua_get_thread_ctx(lua_conf);
+    L = thread_ctx->lua;
 
-    ctx->lua = lua_newthread(lua_thread);
-    ctx->txnp = rh;
-    ctx->client_request_bufp = rri->requestBufp;
-    ctx->client_request_hdrp = rri->requestHdrp;
+    http_ctx = ts_lua_create_http_ctx(thread_ctx);
 
-    ts_lua_set_ctx(ctx->lua, ctx);
+    http_ctx->txnp = rh;
+    http_ctx->client_request_bufp = rri->requestBufp;
+    http_ctx->client_request_hdrp = rri->requestHdrp;
 
-    l = ctx->lua;
+    l = http_ctx->lua;
 
     lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
     if (lua_type(l, -1) != LUA_TFUNCTION) {
         return TSREMAP_NO_REMAP;
     }
 
-    ret = lua_pcall(l, 0, 1, 0);
-    if (ret) {
-        fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-    }
+    lua_pcall(l, 0, 1, 0);
 
-    match = lua_tointeger(l, -1);
+    ret = lua_tointeger(l, -1);
     lua_pop(l, 1);
 
-    if (match) {
-        TSDebug("ts_lua", "header matches :)");
+    switch (ret) {
+        case 1:         // hook 一下
+            contp = TSContCreate(ts_lua_cont_handler, NULL);
+            TSContDataSet(contp, http_ctx);
+
+            TSHttpTxnHookAdd(rh, TS_HTTP_SEND_RESPONSE_HDR_HOOK, contp);
+            TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
+            break;
+
+        case 0:
+        default:
+            lua_rawget(L, LUA_REGISTRYINDEX);       // reclaim the newthread
+            luaL_unref(L, -1, http_ctx->ref);
+            lua_pop(L, 1);
+
+            TSfree(http_ctx);
+            break;
     }
+
+    ts_lua_reclaim_unref(thread_ctx);
 
     return TSREMAP_NO_REMAP;
 }
