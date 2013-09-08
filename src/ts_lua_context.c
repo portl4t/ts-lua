@@ -8,9 +8,9 @@ static int ts_lua_context_set(lua_State *L);
 void
 ts_lua_inject_context_api(lua_State *L)
 {
-    lua_newtable(L);         /* .header */
+    lua_newtable(L);         /* .ctx */
 
-    lua_createtable(L, 0, 2);       /* metatable for .header */
+    lua_createtable(L, 0, 2);       /* metatable for context */
 
     lua_pushcfunction(L, ts_lua_context_get);
     lua_setfield(L, -2, "__index");
@@ -28,10 +28,6 @@ ts_lua_context_get(lua_State *L)
 {
     const char  *key;
     size_t      key_len;
-
-    ts_lua_http_ctx  *http_ctx;
-
-    http_ctx = ts_lua_get_http_ctx(L);
 
     key = luaL_checklstring(L, 2, &key_len);
 

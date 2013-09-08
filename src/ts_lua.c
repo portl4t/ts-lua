@@ -133,7 +133,7 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int             ret, base1, base2;
+    int             ret;
 
     TSCont          contp;
     lua_State       *L;
@@ -153,6 +153,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     http_ctx->txnp = rh;
     http_ctx->client_request_bufp = rri->requestBufp;
     http_ctx->client_request_hdrp = rri->requestHdrp;
+    http_ctx->client_request_url = rri->requestUrl;
 
     l = http_ctx->lua;
 
@@ -167,7 +168,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     lua_pop(l, 1);
 
     switch (ret) {
-        case 1:         // hook 一下
+        case 1:         // add hook
             contp = TSContCreate(ts_lua_cont_handler, NULL);
             TSContDataSet(contp, http_ctx);
 
@@ -177,13 +178,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
         case 0:
         default:
-            base1 = lua_gettop(L);
-//            lua_rawget(L, LUA_REGISTRYINDEX);       // reclaim the newthread
             luaL_unref(L, LUA_REGISTRYINDEX, http_ctx->ref);
-            base2 = lua_gettop(L);
-            lua_settop(L, base1);
-//            lua_pop(L, 1);
-
             TSfree(http_ctx);
             break;
     }

@@ -16,6 +16,7 @@
 
 #include "ts_lua_atomic.h"
 
+#define     TS_LUA_MAX_URL_LENGTH   2048
 
 typedef struct {
     int     ref;
@@ -36,6 +37,7 @@ typedef struct {
 
     TSMBuffer   client_request_bufp;
     TSMLoc      client_request_hdrp;
+    TSMLoc      client_request_url;
 
     TSMBuffer   client_response_bufp;
     TSMLoc      client_response_hdrp;
