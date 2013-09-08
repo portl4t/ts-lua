@@ -2,6 +2,7 @@
 #include "ts_lua_util.h"
 #include "ts_lua_client_request.h"
 #include "ts_lua_client_response.h"
+#include "ts_lua_context.h"
 
 static void ts_lua_init_registry(lua_State *L);
 static void ts_lua_init_globals(lua_State *L);
@@ -54,16 +55,14 @@ ts_lua_reclaim_unref(ts_lua_thread_ctx *ctx)
         return;
 
     L = ctx->lua;
-    lua_rawget(L, LUA_REGISTRYINDEX);
 
     refp = ts_lua_atomiclist_popall(&ctx->reclaim_list);
     while (refp) {
-        luaL_unref(L, -1, refp->ref);
+        luaL_unref(L, LUA_REGISTRYINDEX, refp->ref);
         TSfree(refp);
         refp = refp->next;
     }
 
-    lua_pop(L, 1);
     ctx->reclaim_time = now;
 }
 
@@ -86,6 +85,8 @@ ts_lua_inject_ts_api(lua_State *L)
 
     ts_lua_inject_client_request_api(L);
     ts_lua_inject_client_response_api(L);
+
+    ts_lua_inject_context_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");
