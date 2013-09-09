@@ -1,4 +1,7 @@
-ts-lua
+Name
 ======
 
-Embed the Power of Lua into TrafficServer
+ts-lua - Embed the Power of Lua into TrafficServer
+
+Synopsis
+======
