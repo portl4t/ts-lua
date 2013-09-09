@@ -65,7 +65,10 @@ ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
 
             lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
             if (lua_type(l, -1) == LUA_TFUNCTION) {
-                lua_pcall(l, 0, 1, 0);
+                ret = lua_pcall(l, 0, 1, 0);
+                if (ret) {
+                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
+                }
                 ret = lua_tointeger(l, -1);
                 lua_pop(l, 1);
             }
