@@ -4,6 +4,7 @@
 #include "ts_lua_client_response.h"
 #include "ts_lua_context.h"
 
+static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
 static void ts_lua_init_globals(lua_State *L);
 static void ts_lua_inject_ts_api(lua_State *L);
@@ -17,11 +18,14 @@ ts_lua_create_vm(ts_lua_main_ctx *arr, int n)
 
     for (i = 0; i < n; i++) {
 
-        L = luaL_newstate();
+        L = ts_lua_new_state();
 
         if (L == NULL)
             return -1;
 
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
+
+        arr[i].gref = luaL_ref(L, LUA_REGISTRYINDEX);
         arr[i].lua = L;
         arr[i].mutexp = TSMutexCreate();
     }
@@ -45,14 +49,24 @@ ts_lua_destroy_vm(ts_lua_main_ctx *arr, int n)
     return;
 }
 
-void
-ts_lua_init_state(lua_State *L)
+lua_State *
+ts_lua_new_state()
 {
+    lua_State   *L;
+
+    L = luaL_newstate();
+
+    if (L == NULL) {
+        return NULL;
+    }
+
     luaL_openlibs(L);
 
     ts_lua_init_registry(L);
 
     ts_lua_init_globals(L);
+
+    return L;
 }
 
 int
@@ -68,11 +82,13 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
         base = lua_gettop(L);
 
         lua_newtable(L);                                    // create this module's global table
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -2, "_G");
+        lua_newtable(L);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, arr[i].gref);
+        lua_setfield(L, -2, "__index");
+        lua_setmetatable(L, -2);
         lua_replace(L, LUA_GLOBALSINDEX);
-        base = lua_gettop(L);
-
-        ts_lua_init_state(L);
-        base = lua_gettop(L);
 
         ret = luaL_loadfile(L, conf->script);
         if (ret) {
@@ -94,10 +110,11 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
         lua_pushvalue(L, LUA_GLOBALSINDEX);
         lua_rawset(L, LUA_REGISTRYINDEX);
 
-        base = lua_gettop(L);
         lua_newtable(L);
         lua_replace(L, LUA_GLOBALSINDEX);               // set empty table to global
+        base = lua_gettop(L);
     }
+
 
     return 0;
 }
@@ -159,21 +176,30 @@ ts_lua_get_http_ctx(lua_State *L)
 ts_lua_http_ctx *
 ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 {
+    int                 base;
     ts_lua_http_ctx     *http_ctx;
     lua_State           *L;
+    lua_State           *l;
 
     L = main_ctx->lua;
 
     http_ctx = TSmalloc(sizeof(ts_lua_http_ctx));
     memset(http_ctx, 0, sizeof(ts_lua_http_ctx));
 
+    http_ctx->lua = lua_newthread(L);
+    l = http_ctx->lua;
+
     lua_pushlightuserdata(L, conf);
     lua_rawget(L, LUA_REGISTRYINDEX);
-    lua_replace(L, LUA_GLOBALSINDEX);
 
-    http_ctx->lua = lua_newthread(L);
+    lua_xmove(L, l, 1);
+    lua_replace(l, LUA_GLOBALSINDEX);
+
 
     http_ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    base = lua_gettop(L);
+    base = lua_gettop(l);
 
     http_ctx->mctx = main_ctx;
     ts_lua_set_http_ctx(http_ctx->lua, http_ctx);

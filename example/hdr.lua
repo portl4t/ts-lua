@@ -13,7 +13,7 @@ function do_remap()
         return 0
     end
 
-    ts.ctx['Rhost'] = string.reverse(req_host)
+    ts.ctx['rhost'] = string.reverse(req_host)
 
     return 1
 end
