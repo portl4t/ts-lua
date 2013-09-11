@@ -6,48 +6,12 @@
 
 #include "ts_lua_util.h"
 
-#define TS_LUA_MAX_SCRIPT_FNAME_LENGTH          1024
-#define TS_LUA_FUNCTION_REMAP                   "do_remap"
-#define TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE   "do_cache_lookup_complete"
-#define TS_LUA_FUNCTION_SEND_REQUEST            "do_send_request"
-#define TS_LUA_FUNCTION_READ_RESPONSE           "do_read_response"
-#define TS_LUA_FUNCTION_SEND_RESPONSE           "do_send_response"
+#define TS_LUA_MAX_STATE_COUNT                  200
 
+static volatile int32_t ts_lua_http_next_id = 0;
 
-typedef struct {
-    pthread_key_t lua_state_key;
-    char script_file[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
-} ts_lua_conf;
+ts_lua_main_ctx         *ts_lua_main_ctx_array;
 
-
-ts_lua_thread_ctx *
-ts_lua_get_thread_ctx(ts_lua_conf *lua_conf)
-{
-    int                 ret;
-    ts_lua_thread_ctx   *thread_ctx;
-    lua_State           *l;
-
-    thread_ctx = (ts_lua_thread_ctx*)pthread_getspecific(lua_conf->lua_state_key);
-
-    if (thread_ctx == NULL) {
-        l = ts_lua_new_state();
-
-        ret = luaL_loadfile(l, lua_conf->script_file);
-        if (ret) {
-            fprintf(stderr, "luaL_loadfile failed: %s\n", lua_tostring(l, -1));
-        }
-
-        ret = lua_pcall(l, 0, 0, 0);
-        if (ret) {
-            fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-        }
-
-        thread_ctx = ts_lua_init_thread(l);
-        pthread_setspecific(lua_conf->lua_state_key, thread_ctx);
-    }
-
-    return thread_ctx;
-}
 
 static int
 ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
@@ -56,9 +20,14 @@ ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
     TSHttpTxn           txnp = (TSHttpTxn)edata;
     lua_State           *l;
     ts_lua_http_ctx     *http_ctx;
+    ts_lua_main_ctx     *main_ctx;
 
     http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
+    main_ctx = http_ctx->mctx;
+
     l = http_ctx->lua;
+
+    TSMutexLock(main_ctx->mutexp);
 
     switch (event) {
         case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
@@ -76,7 +45,6 @@ ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
 
         case TS_EVENT_HTTP_TXN_CLOSE:
-
             ts_lua_destroy_http_ctx(http_ctx);
             TSContDestroy(contp);
             break;
@@ -85,6 +53,7 @@ ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
     }
 
+    TSMutexUnlock(main_ctx->mutexp);
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     return 0;
 }
@@ -92,8 +61,21 @@ ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
 TSReturnCode
 TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 {
+    int     ret;
+
     if (!api_info || api_info->size < sizeof(TSRemapInterface))
         return TS_ERROR;
+
+    ts_lua_main_ctx_array = TSmalloc(sizeof(ts_lua_main_ctx) * TS_LUA_MAX_STATE_COUNT);
+    memset(ts_lua_main_ctx_array, 0, sizeof(ts_lua_main_ctx) * TS_LUA_MAX_STATE_COUNT);
+
+    ret = ts_lua_create_vm(ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
+
+    if (ret) {
+        ts_lua_destroy_vm(ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
+        TSfree(ts_lua_main_ctx_array);
+        return TS_ERROR;
+    }
 
     return TS_SUCCESS;
 }
@@ -101,25 +83,25 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 TSReturnCode
 TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_size)
 {
+    int     ret;
+
     if (argc < 3) {
         TSError("[%s] lua script file required !!", __FUNCTION__);
         return TS_ERROR;
     }
 
-    ts_lua_conf *conf = TSmalloc(sizeof(ts_lua_conf));
+    if (strlen(argv[2]) >= TS_LUA_MAX_SCRIPT_FNAME_LENGTH - 16)
+        return TS_ERROR;
+
+    ts_lua_instance_conf *conf = TSmalloc(sizeof(ts_lua_instance_conf));
     if (!conf) {
         TSError("[%s] TSmalloc failed !!", __FUNCTION__);
         return TS_ERROR;
     }
 
-    int status = pthread_key_create(&conf->lua_state_key, NULL);
-    if (status) {
-        TSError("[%s] pthread_key_create Error: %s", __FUNCTION__, strerror(errno));
-        TSfree(conf);
-        return TS_ERROR;
-    }
+    sprintf(conf->script, "%s", argv[2]);
 
-    sprintf(conf->script_file, "%s", argv[2]);
+    ret = ts_lua_add_module(conf, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
 
     *ih = conf;
 
@@ -136,22 +118,25 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int             ret;
+    int                 ret;
+    int64_t             req_id;
 
-    TSCont          contp;
-    lua_State       *L;
-    lua_State       *l;
-    ts_lua_conf     *lua_conf;
+    TSCont              contp;
+    lua_State           *l;
 
-    ts_lua_thread_ctx    *thread_ctx;
-    ts_lua_http_ctx      *http_ctx;
+    ts_lua_main_ctx     *main_ctx;
+    ts_lua_http_ctx     *http_ctx;
 
-    lua_conf = (ts_lua_conf*)ih;
+    ts_lua_instance_conf     *instance_conf;
 
-    thread_ctx = ts_lua_get_thread_ctx(lua_conf);
-    L = thread_ctx->lua;
+    instance_conf = (ts_lua_instance_conf*)ih;
+    req_id = (int64_t) ts_lua_atomic_increment((&ts_lua_http_next_id), 1);
 
-    http_ctx = ts_lua_create_http_ctx(thread_ctx);
+    main_ctx = &ts_lua_main_ctx_array[req_id%TS_LUA_MAX_STATE_COUNT];
+
+    TSMutexLock(main_ctx->mutexp);
+
+    http_ctx = ts_lua_create_http_ctx(main_ctx, instance_conf);
 
     http_ctx->txnp = rh;
     http_ctx->client_request_bufp = rri->requestBufp;
@@ -161,10 +146,6 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     l = http_ctx->lua;
 
     lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
-    if (lua_type(l, -1) != LUA_TFUNCTION) {
-        return TSREMAP_NO_REMAP;
-    }
-
     lua_pcall(l, 0, 1, 0);
 
     ret = lua_tointeger(l, -1);
@@ -181,13 +162,11 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
         case 0:
         default:
-            luaL_unref(L, LUA_REGISTRYINDEX, http_ctx->ref);
-            TSfree(http_ctx);
+            ts_lua_destroy_http_ctx(http_ctx);
             break;
     }
 
-    ts_lua_reclaim_unref(thread_ctx);
-
+    TSMutexUnlock(main_ctx->mutexp);
     return TSREMAP_NO_REMAP;
 }
 

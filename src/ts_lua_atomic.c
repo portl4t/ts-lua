@@ -77,3 +77,4 @@ ts_lua_atomic_cas64(volatile int64_t * mem, int64_t old, int64_t new_value)
     return __sync_bool_compare_and_swap(mem, old, new_value);
 }
 
+

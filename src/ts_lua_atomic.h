@@ -18,5 +18,7 @@ void ts_lua_atomiclist_init(ts_lua_atomiclist * l, const char *name, uint32_t of
 void *ts_lua_atomiclist_push(ts_lua_atomiclist * l, void *item);
 void *ts_lua_atomiclist_popall(ts_lua_atomiclist * l);
 
+static inline int ts_lua_atomic_increment(volatile int32_t *mem, int value) { return __sync_fetch_and_add(mem, value); }
+
 #endif
 

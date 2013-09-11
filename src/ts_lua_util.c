@@ -9,62 +9,99 @@ static void ts_lua_init_globals(lua_State *L);
 static void ts_lua_inject_ts_api(lua_State *L);
 
 
-lua_State *
-ts_lua_new_state()
+int
+ts_lua_create_vm(ts_lua_main_ctx *arr, int n)
 {
-    lua_State       *L;
+    int         i;
+    lua_State   *L;
 
-    L = luaL_newstate();
+    for (i = 0; i < n; i++) {
 
-    if (L == NULL) {
-        return NULL;
+        L = luaL_newstate();
+
+        if (L == NULL)
+            return -1;
+
+        arr[i].lua = L;
+        arr[i].mutexp = TSMutexCreate();
     }
 
+    return 0;
+}
+
+void
+ts_lua_destroy_vm(ts_lua_main_ctx *arr, int n)
+{
+    int         i;
+    lua_State   *L;
+
+    for (i = 0; i < n; i++) {
+
+        L = arr[i].lua;
+        if (L)
+            lua_close(L);
+    }
+
+    return;
+}
+
+void
+ts_lua_init_state(lua_State *L)
+{
     luaL_openlibs(L);
 
     ts_lua_init_registry(L);
 
     ts_lua_init_globals(L);
-
-    return L;
 }
 
-ts_lua_thread_ctx *
-ts_lua_init_thread(lua_State *l)
+int
+ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
 {
-    ts_lua_thread_ctx * ctx = (ts_lua_thread_ctx*)TSmalloc(sizeof(ts_lua_thread_ctx));
-    if (!ctx)
-        return NULL;
+    int             i, ret, base;
+    lua_State       *L;
 
-    ctx->lua = l;
-    ctx->reclaim_time = 0;
-    ts_lua_atomiclist_init(&ctx->reclaim_list, "reclaim list", offsetof(ts_lua_ref, next));
+    for (i = 0; i < n; i++) {
 
-    return ctx;
-}
+        L = arr[i].lua;
 
-void
-ts_lua_reclaim_unref(ts_lua_thread_ctx *ctx)
-{
-    ts_lua_ref  *refp;
-    lua_State   *L;
+        base = lua_gettop(L);
 
-    time_t now = TShrtime()/1000000;
+        lua_newtable(L);                                    // create this module's global table
+        lua_replace(L, LUA_GLOBALSINDEX);
+        base = lua_gettop(L);
 
-    if (now - ctx->reclaim_time < 10)
-        return;
+        ts_lua_init_state(L);
+        base = lua_gettop(L);
 
-    L = ctx->lua;
+        ret = luaL_loadfile(L, conf->script);
+        if (ret) {
+            TSError("[%s] luaL_loadfile %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
+            lua_pop(L, 1);
+            return -1;
+        }
 
-    refp = ts_lua_atomiclist_popall(&ctx->reclaim_list);
-    while (refp) {
-        luaL_unref(L, LUA_REGISTRYINDEX, refp->ref);
-        TSfree(refp);
-        refp = refp->next;
+        ret = lua_pcall(L, 0, 0, 0);
+        if (ret) {
+            TSError("[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
+            lua_pop(L, 1);
+            return -1;
+        }
+
+        base = lua_gettop(L);
+
+        lua_pushlightuserdata(L, conf);
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
+        lua_rawset(L, LUA_REGISTRYINDEX);
+
+        base = lua_gettop(L);
+        lua_newtable(L);
+        lua_replace(L, LUA_GLOBALSINDEX);               // set empty table to global
     }
 
-    ctx->reclaim_time = now;
+    return 0;
 }
+
 
 static
 void ts_lua_init_registry(lua_State *L)
@@ -120,46 +157,43 @@ ts_lua_get_http_ctx(lua_State *L)
 }
 
 ts_lua_http_ctx *
-ts_lua_create_http_ctx(ts_lua_thread_ctx *thread_ctx)
+ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 {
-    int                 base;
     ts_lua_http_ctx     *http_ctx;
     lua_State           *L;
 
-    L = thread_ctx->lua;
+    L = main_ctx->lua;
 
     http_ctx = TSmalloc(sizeof(ts_lua_http_ctx));
     memset(http_ctx, 0, sizeof(ts_lua_http_ctx));
 
-    base = lua_gettop(L);
+    lua_pushlightuserdata(L, conf);
+    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_replace(L, LUA_GLOBALSINDEX);
 
     http_ctx->lua = lua_newthread(L);
 
     http_ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    lua_settop(L, base);
 
-    http_ctx->th_ctx = thread_ctx;
+    http_ctx->mctx = main_ctx;
     ts_lua_set_http_ctx(http_ctx->lua, http_ctx);
 
     return http_ctx;
 }
 
+
 void
 ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
 {
-    ts_lua_ref          *refp;
-    ts_lua_thread_ctx   *thread_ctx;
+    ts_lua_main_ctx   *main_ctx;
 
-    thread_ctx = http_ctx->th_ctx;
+    main_ctx = http_ctx->mctx;
 
     if (http_ctx->client_response_hdrp) {
         TSHandleMLocRelease(http_ctx->client_response_bufp, TS_NULL_MLOC, http_ctx->client_response_hdrp);
     }
 
-    refp = (ts_lua_ref*)TSmalloc(sizeof(ts_lua_ref));
-    refp->ref = http_ctx->ref;
-    ts_lua_atomiclist_push(&thread_ctx->reclaim_list, refp);
-
+    luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, http_ctx->ref);
     TSfree(http_ctx);
 }
 

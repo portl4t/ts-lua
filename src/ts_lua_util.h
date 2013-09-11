@@ -4,15 +4,15 @@
 
 #include "ts_lua_common.h"
 
-lua_State * ts_lua_new_state();
+int ts_lua_create_vm(ts_lua_main_ctx *arr, int n);
+void ts_lua_destroy_vm(ts_lua_main_ctx *arr, int n);
 
-ts_lua_thread_ctx * ts_lua_init_thread(lua_State *l);
-void ts_lua_reclaim_unref(ts_lua_thread_ctx *ctx);
+int ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n);
 
 void ts_lua_set_http_ctx(lua_State *L, ts_lua_http_ctx  *ctx);
 ts_lua_http_ctx * ts_lua_get_http_ctx(lua_State *L);
 
-ts_lua_http_ctx * ts_lua_create_http_ctx(ts_lua_thread_ctx *thread_ctx);
+ts_lua_http_ctx * ts_lua_create_http_ctx(ts_lua_main_ctx *mctx, ts_lua_instance_conf *conf);
 void ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx);
 
 #endif

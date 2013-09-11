@@ -16,19 +16,26 @@
 
 #include "ts_lua_atomic.h"
 
-#define     TS_LUA_MAX_URL_LENGTH   2048
+#define TS_LUA_FUNCTION_REMAP                   "do_remap"
+#define TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE   "do_cache_lookup_complete"
+#define TS_LUA_FUNCTION_SEND_REQUEST            "do_send_request"
+#define TS_LUA_FUNCTION_READ_RESPONSE           "do_read_response"
+#define TS_LUA_FUNCTION_SEND_RESPONSE           "do_send_response"
+
+#define TS_LUA_MAX_SCRIPT_FNAME_LENGTH      1024
+#define TS_LUA_MAX_URL_LENGTH               2048
+
 
 typedef struct {
-    int     ref;
-    void    *next;
-} ts_lua_ref;
+    char    script[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
+} ts_lua_instance_conf;
 
 
 typedef struct {
     lua_State   *lua;
-    time_t      reclaim_time;
-    ts_lua_atomiclist reclaim_list;
-} ts_lua_thread_ctx;
+    TSMutex     mutexp;
+    int         gref;
+} ts_lua_main_ctx;
 
 
 typedef struct {
@@ -42,7 +49,7 @@ typedef struct {
     TSMBuffer   client_response_bufp;
     TSMLoc      client_response_hdrp;
 
-    ts_lua_thread_ctx   *th_ctx;
+    ts_lua_main_ctx   *mctx;
 
     int         ref;
 
