@@ -176,7 +176,7 @@ ts_lua_get_http_ctx(lua_State *L)
 ts_lua_http_ctx *
 ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 {
-    int                 base;
+//    int                 base;
     ts_lua_http_ctx     *http_ctx;
     lua_State           *L;
     lua_State           *l;
@@ -192,14 +192,18 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
     lua_pushlightuserdata(L, conf);
     lua_rawget(L, LUA_REGISTRYINDEX);
 
+    /* new globals table for coroutine */
+    lua_newtable(l);
+    lua_pushvalue(l, -1);
+    lua_setfield(l, -2, "_G"); 
+    lua_newtable(l);
     lua_xmove(L, l, 1);
+    lua_setfield(l, -2, "__index");
+    lua_setmetatable(l, -2);
+
     lua_replace(l, LUA_GLOBALSINDEX);
 
-
     http_ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    base = lua_gettop(L);
-    base = lua_gettop(l);
 
     http_ctx->mctx = main_ctx;
     ts_lua_set_http_ctx(http_ctx->lua, http_ctx);

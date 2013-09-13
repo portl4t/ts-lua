@@ -33,7 +33,7 @@ ts_lua_context_get(lua_State *L)
 
     if (key && key_len) {
         lua_pushlstring(L, key, key_len);
-        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_rawget(L, LUA_GLOBALSINDEX);
     } else {
         lua_pushnil(L);
     }
@@ -56,7 +56,7 @@ ts_lua_context_set(lua_State *L)
     lua_pushlstring(L, key, key_len);
     lua_pushlstring(L, val, val_len);
 
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_rawset(L, LUA_GLOBALSINDEX);
 
     return 0;
 }
