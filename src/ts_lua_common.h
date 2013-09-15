@@ -41,6 +41,7 @@ typedef struct {
 typedef struct {
     lua_State   *lua;
     TSHttpTxn   txnp;
+    TSCont      main_contp;
 
     TSMBuffer   client_request_bufp;
     TSMLoc      client_request_hdrp;

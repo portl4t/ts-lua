@@ -3,6 +3,7 @@
 #include "ts_lua_client_request.h"
 #include "ts_lua_client_response.h"
 #include "ts_lua_context.h"
+#include "ts_lua_hook.h"
 
 static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
@@ -141,6 +142,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_client_response_api(L);
 
     ts_lua_inject_context_api(L);
+    ts_lua_inject_hook_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");

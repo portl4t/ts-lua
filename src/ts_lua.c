@@ -147,33 +147,25 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
     lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
     if (lua_type(l, -1) != LUA_TFUNCTION) {
-        fprintf(stderr, "fk here\n");
+        TSMutexUnlock(main_ctx->mutexp);
+        return TSREMAP_NO_REMAP;
     }
 
-    ret = lua_pcall(l, 0, 1, 0);
-    if (ret) {
+    contp = TSContCreate(ts_lua_cont_handler, NULL);
+    TSContDataSet(contp, http_ctx);
+    http_ctx->main_contp = contp;
+
+    if (lua_pcall(l, 0, 1, 0) != 0) {
         fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
     }
 
     ret = lua_tointeger(l, -1);
     lua_pop(l, 1);
 
-    switch (ret) {
-        case 1:         // add hook
-            contp = TSContCreate(ts_lua_cont_handler, NULL);
-            TSContDataSet(contp, http_ctx);
-
-            TSHttpTxnHookAdd(rh, TS_HTTP_SEND_RESPONSE_HDR_HOOK, contp);
-            TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
-            break;
-
-        case 0:
-        default:
-            ts_lua_destroy_http_ctx(http_ctx);
-            break;
-    }
+    TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
 
     TSMutexUnlock(main_ctx->mutexp);
-    return TSREMAP_NO_REMAP;
+
+    return ret;
 }
 
