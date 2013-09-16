@@ -7,12 +7,12 @@ function string.tohex(str)
     end))
 end
 
-function do_send_response()
+function send_response()
     mm = md5:new()
     mm:update(ts.ctx['tt'])
     ts.client_response.header['Uri'] = ts.ctx['tt']
     ts.client_response.header['Hex'] = (mm:final()):tohex()
-    return 1
+    return 0
 end
 
 
@@ -24,7 +24,8 @@ function do_remap()
     end
 
     ts.ctx['tt'] = ts.client_request.get_uri()
+    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response);
 
-    return 1
+    return 0
 end
 
