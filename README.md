@@ -6,9 +6,9 @@ ts-lua - Embed the Power of Lua into TrafficServer
 Synopsis
 ======
 
-    function do_send_response()
+    function send_response()
         ts.client_response.header['Rhost'] = ts.ctx['rhost']
-        return 1
+        return 0
     end
 
 
@@ -21,6 +21,8 @@ Synopsis
 
         ts.ctx['rhost'] = string.reverse(req_host)
 
-        return 1
+        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
+
+        return 0
     end
 
