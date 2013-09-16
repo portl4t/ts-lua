@@ -1,5 +1,9 @@
 
+#include <arpa/inet.h>
 #include "ts_lua_util.h"
+
+static void ts_lua_inject_client_request_client_addr_api(lua_State *L);
+static void ts_lua_inject_client_request_server_addr_api(lua_State *L);
 
 static int ts_lua_client_request_header_get(lua_State *L);
 static int ts_lua_client_request_header_set(lua_State *L);
@@ -8,9 +12,13 @@ static int ts_lua_client_request_set_uri(lua_State *L);
 static int ts_lua_client_request_set_uri_args(lua_State *L);
 static int ts_lua_client_request_get_uri_args(lua_State *L);
 
+static void ts_lua_inject_client_request_socket_api(lua_State *L);
 static void ts_lua_inject_client_request_header_api(lua_State *L);
-static void tx_lua_inject_client_request_uri_api(lua_State *L);
-static void tx_lua_inject_client_request_args_api(lua_State *L);
+static void ts_lua_inject_client_request_uri_api(lua_State *L);
+static void ts_lua_inject_client_request_args_api(lua_State *L);
+
+static int ts_lua_client_request_client_addr_get_ip(lua_State *L);
+static int ts_lua_client_request_client_addr_get_port(lua_State *L);
 
 
 void
@@ -18,11 +26,39 @@ ts_lua_inject_client_request_api(lua_State *L)
 {
     lua_newtable(L);
 
+    ts_lua_inject_client_request_socket_api(L);
     ts_lua_inject_client_request_header_api(L);
-    tx_lua_inject_client_request_uri_api(L);
-    tx_lua_inject_client_request_args_api(L);
+    ts_lua_inject_client_request_uri_api(L);
+    ts_lua_inject_client_request_args_api(L);
 
     lua_setfield(L, -2, "client_request");
+}
+
+static void
+ts_lua_inject_client_request_socket_api(lua_State *L)
+{
+    ts_lua_inject_client_request_client_addr_api(L);
+    ts_lua_inject_client_request_server_addr_api(L);
+}
+
+static void
+ts_lua_inject_client_request_client_addr_api(lua_State *L)
+{
+    lua_newtable(L);
+
+    lua_pushcfunction(L, ts_lua_client_request_client_addr_get_ip);
+    lua_setfield(L, -2, "get_ip");
+
+    lua_pushcfunction(L, ts_lua_client_request_client_addr_get_port);
+    lua_setfield(L, -2, "get_port");
+
+    lua_setfield(L, -2, "client_addr");
+}
+
+static void
+ts_lua_inject_client_request_server_addr_api(lua_State *L)
+{
+    return;
 }
 
 static void
@@ -110,7 +146,7 @@ ts_lua_client_request_header_set(lua_State *L)
 }
 
 static void
-tx_lua_inject_client_request_uri_api(lua_State *L)
+ts_lua_inject_client_request_uri_api(lua_State *L)
 {
     lua_pushcfunction(L, ts_lua_client_request_set_uri);
     lua_setfield(L, -2, "set_uri");
@@ -149,7 +185,7 @@ ts_lua_client_request_set_uri(lua_State *L)
 
 
 static void
-tx_lua_inject_client_request_args_api(lua_State *L)
+ts_lua_inject_client_request_args_api(lua_State *L)
 {
     lua_pushcfunction(L, ts_lua_client_request_set_uri_args);
     lua_setfield(L, -2, "set_uri_args");
@@ -193,5 +229,61 @@ ts_lua_client_request_set_uri_args(lua_State *L)
     TSUrlHttpQuerySet(http_ctx->client_request_bufp, http_ctx->client_request_url, param, param_len);
 
     return 0;
+}
+
+static int
+ts_lua_client_request_client_addr_get_ip(lua_State *L)
+{
+    struct sockaddr const   *client_ip;
+    char                    cip[128];
+    ts_lua_http_ctx         *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    client_ip = TSHttpTxnClientAddrGet(http_ctx->txnp);
+
+    if (client_ip == NULL) {
+        lua_pushnil(L);
+
+    } else {
+
+        if (client_ip->sa_family == AF_INET) {
+            inet_ntop(AF_INET, (const void *)&((struct sockaddr_in *)client_ip)->sin_addr, cip, sizeof(cip));
+        } else {
+            inet_ntop(AF_INET6, (const void *)&((struct sockaddr_in6 *)client_ip)->sin6_addr, cip, sizeof(cip));
+        }
+
+        lua_pushstring(L, cip);
+    }
+
+    return 1;
+}
+
+static int
+ts_lua_client_request_client_addr_get_port(lua_State *L)
+{
+    struct sockaddr const   *client_ip;
+    ts_lua_http_ctx         *http_ctx;
+    int                     port;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    client_ip = TSHttpTxnClientAddrGet(http_ctx->txnp);
+
+    if (client_ip == NULL) {
+        lua_pushnil(L);
+
+    } else {
+
+        if (client_ip->sa_family == AF_INET) {
+            port = ((struct sockaddr_in *)client_ip)->sin_port;
+        } else {
+            port = ((struct sockaddr_in6 *)client_ip)->sin6_port;
+        }
+
+        lua_pushnumber(L, port);
+    }
+
+    return 1;
 }
 
