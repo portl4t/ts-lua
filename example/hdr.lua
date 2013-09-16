@@ -1,6 +1,6 @@
 
 
-function do_send_response()
+function send_response()
     ts.client_response.header['Rhost'] = ts.ctx['rhost']
     return 0
 end
@@ -15,7 +15,7 @@ function do_remap()
 
     ts.ctx['rhost'] = string.reverse(req_host)
 
-    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, do_send_response)
+    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
 
     return 0
 end
