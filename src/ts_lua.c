@@ -6,57 +6,12 @@
 
 #include "ts_lua_util.h"
 
-#define TS_LUA_MAX_STATE_COUNT                  2048
+#define TS_LUA_MAX_STATE_COUNT                  4096
 
 static volatile int32_t ts_lua_http_next_id = 0;
 
 ts_lua_main_ctx         *ts_lua_main_ctx_array;
 
-
-static int
-ts_lua_cont_handler(TSCont contp, TSEvent event, void *edata)
-{
-    int                 ret;
-    TSHttpTxn           txnp = (TSHttpTxn)edata;
-    lua_State           *l;
-    ts_lua_http_ctx     *http_ctx;
-    ts_lua_main_ctx     *main_ctx;
-
-    http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
-    main_ctx = http_ctx->mctx;
-
-    l = http_ctx->lua;
-
-    TSMutexLock(main_ctx->mutexp);
-
-    switch (event) {
-        case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-
-            lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
-            if (lua_type(l, -1) == LUA_TFUNCTION) {
-                ret = lua_pcall(l, 0, 1, 0);
-                if (ret) {
-                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-                }
-                ret = lua_tointeger(l, -1);
-                lua_pop(l, 1);
-            }
-
-            break;
-
-        case TS_EVENT_HTTP_TXN_CLOSE:
-            ts_lua_destroy_http_ctx(http_ctx);
-            TSContDestroy(contp);
-            break;
-
-        default:
-            break;
-    }
-
-    TSMutexUnlock(main_ctx->mutexp);
-    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
-    return 0;
-}
 
 TSReturnCode
 TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
@@ -151,7 +106,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
         return TSREMAP_NO_REMAP;
     }
 
-    contp = TSContCreate(ts_lua_cont_handler, NULL);
+    contp = TSContCreate(ts_lua_http_cont_handler, NULL);
     TSContDataSet(contp, http_ctx);
     http_ctx->main_contp = contp;
 

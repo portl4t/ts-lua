@@ -234,3 +234,78 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
     TSfree(http_ctx);
 }
 
+int
+ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
+{
+    int                 ret;
+    TSHttpTxn           txnp = (TSHttpTxn)edata;
+    lua_State           *l;
+    ts_lua_http_ctx     *http_ctx;
+    ts_lua_main_ctx     *main_ctx;
+
+    http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
+    main_ctx = http_ctx->mctx;
+
+    l = http_ctx->lua;
+
+    TSMutexLock(main_ctx->mutexp);
+
+    switch (event) {
+
+        case TS_EVENT_HTTP_CACHE_LOOKUP_COMPLETE:
+
+            lua_getglobal(l, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
+            if (lua_type(l, -1) == LUA_TFUNCTION) {
+                ret = lua_pcall(l, 0, 1, 0);
+/*
+                if (ret) {
+                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
+                }
+                ret = lua_tointeger(l, -1);
+                lua_pop(l, 1);
+*/
+            }
+
+            break;
+
+        case TS_EVENT_HTTP_SEND_REQUEST_HDR:
+
+            lua_getglobal(l, TS_LUA_FUNCTION_SEND_REQUEST);
+            if (lua_type(l, -1) == LUA_TFUNCTION) {
+                ret = lua_pcall(l, 0, 1, 0);
+            }
+
+            break;
+
+        case TS_EVENT_HTTP_READ_RESPONSE_HDR:
+
+            lua_getglobal(l, TS_LUA_FUNCTION_READ_RESPONSE);
+            if (lua_type(l, -1) == LUA_TFUNCTION) {
+                ret = lua_pcall(l, 0, 1, 0);
+            }
+
+            break;
+
+        case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
+
+            lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
+            if (lua_type(l, -1) == LUA_TFUNCTION) {
+                ret = lua_pcall(l, 0, 1, 0);
+            }
+
+            break;
+
+        case TS_EVENT_HTTP_TXN_CLOSE:
+            ts_lua_destroy_http_ctx(http_ctx);
+            TSContDestroy(contp);
+            break;
+
+        default:
+            break;
+    }
+
+    TSMutexUnlock(main_ctx->mutexp);
+    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+    return 0;
+}
+

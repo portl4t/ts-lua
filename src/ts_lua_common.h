@@ -50,11 +50,25 @@ typedef struct {
     TSMBuffer   client_response_bufp;
     TSMLoc      client_response_hdrp;
 
+    TSMBuffer   cached_response_bufp;
+    TSMLoc      cached_response_hdrp;
+
     ts_lua_main_ctx   *mctx;
 
     int         ref;
 
 } ts_lua_http_ctx;
+
+
+typedef struct {
+    TSVIO               output_vio;
+    TSIOBuffer          output_buffer;
+    TSIOBufferReader    output_reader;
+
+    int64_t             total;
+    ts_lua_http_ctx     *hctx;
+
+} ts_lua_transform_ctx;
 
 #endif
 

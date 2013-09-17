@@ -1,10 +1,29 @@
 
 #include "ts_lua_util.h"
 
+typedef enum {
+    TS_LUA_CACHE_LOOKUP_MISS,
+    TS_LUA_CACHE_LOOKUP_HIT_STALE,
+    TS_LUA_CACHE_LOOKUP_HIT_FRESH,
+    TS_LUA_CACHE_LOOKUP_SKIPPED
+} TSLuaCacheLookupResult;
+
+char * ts_lua_cache_lookup_result_string[] = {
+    "TS_LUA_CACHE_LOOKUP_MISS",
+    "TS_LUA_CACHE_LOOKUP_HIT_STALE",
+    "TS_LUA_CACHE_LOOKUP_HIT_FRESH",
+    "TS_LUA_CACHE_LOOKUP_SKIPPED"
+};
+
+static void ts_lua_inject_http_retset_api(lua_State *L);
+static void ts_lua_inject_http_cache_api(lua_State *L);
 
 static int ts_lua_http_set_retstatus(lua_State *L);
 static int ts_lua_http_set_retbody(lua_State *L);
 static int ts_lua_http_set_resp(lua_State *L);
+
+static int ts_lua_http_get_cache_lookup_status(lua_State *L);
+static void ts_lua_inject_cache_lookup_result_variables(lua_State *L);
 
 
 void
@@ -12,6 +31,15 @@ ts_lua_inject_http_api(lua_State *L)
 {
     lua_newtable(L);
 
+    ts_lua_inject_http_retset_api(L);
+    ts_lua_inject_http_cache_api(L);
+
+    lua_setfield(L, -2, "http");
+}
+
+void
+ts_lua_inject_http_retset_api(lua_State *L)
+{
     lua_pushcfunction(L, ts_lua_http_set_retstatus);
     lua_setfield(L, -2, "set_retstatus");
 
@@ -20,11 +48,27 @@ ts_lua_inject_http_api(lua_State *L)
 
     lua_pushcfunction(L, ts_lua_http_set_resp);
     lua_setfield(L, -2, "set_resp");
-
-
-    lua_setfield(L, -2, "http");
 }
 
+void
+ts_lua_inject_http_cache_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_http_get_cache_lookup_status);
+    lua_setfield(L, -2, "get_cache_lookup_status");
+
+    ts_lua_inject_cache_lookup_result_variables(L);
+}
+
+static void
+ts_lua_inject_cache_lookup_result_variables(lua_State *L)
+{
+    int     i;
+
+    for (i = 0; i < sizeof(ts_lua_cache_lookup_result_string)/sizeof(char*); i++) {
+        lua_pushinteger(L, i);
+        lua_setglobal(L, ts_lua_cache_lookup_result_string[i]);
+    }
+}
 
 static int
 ts_lua_http_set_retstatus(lua_State *L)
@@ -74,5 +118,23 @@ ts_lua_http_set_resp(lua_State *L)
     }
 
     return 0;
+}
+
+static int
+ts_lua_http_get_cache_lookup_status(lua_State *L)
+{
+    int                 status;
+
+    ts_lua_http_ctx     *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    if (TSHttpTxnCacheLookupStatusGet(http_ctx->txnp, &status) == TS_ERROR) {
+        lua_pushnil(L);
+    } else {
+        lua_pushnumber(L, status);
+    }
+
+    return 1;
 }
 
