@@ -17,6 +17,7 @@ char * ts_lua_cache_lookup_result_string[] = {
 
 static void ts_lua_inject_http_retset_api(lua_State *L);
 static void ts_lua_inject_http_cache_api(lua_State *L);
+static void ts_lua_inject_http_transform_api(lua_State *L);
 
 static int ts_lua_http_set_retstatus(lua_State *L);
 static int ts_lua_http_set_retbody(lua_State *L);
@@ -25,6 +26,8 @@ static int ts_lua_http_set_resp(lua_State *L);
 static int ts_lua_http_get_cache_lookup_status(lua_State *L);
 static void ts_lua_inject_cache_lookup_result_variables(lua_State *L);
 
+static int ts_lua_http_resp_cache_transformed(lua_State *L);
+static int ts_lua_http_resp_cache_untransformed(lua_State *L);
 
 void
 ts_lua_inject_http_api(lua_State *L)
@@ -33,6 +36,7 @@ ts_lua_inject_http_api(lua_State *L)
 
     ts_lua_inject_http_retset_api(L);
     ts_lua_inject_http_cache_api(L);
+    ts_lua_inject_http_transform_api(L);
 
     lua_setfield(L, -2, "http");
 }
@@ -57,6 +61,16 @@ ts_lua_inject_http_cache_api(lua_State *L)
     lua_setfield(L, -2, "get_cache_lookup_status");
 
     ts_lua_inject_cache_lookup_result_variables(L);
+}
+
+void
+ts_lua_inject_http_transform_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_http_resp_cache_transformed);
+    lua_setfield(L, -2, "resp_cache_transformed");
+
+    lua_pushcfunction(L, ts_lua_http_resp_cache_untransformed);
+    lua_setfield(L, -2, "resp_cache_untransformed");
 }
 
 static void
@@ -136,5 +150,35 @@ ts_lua_http_get_cache_lookup_status(lua_State *L)
     }
 
     return 1;
+}
+
+static int
+ts_lua_http_resp_cache_transformed(lua_State *L)
+{
+    int                 action;
+    ts_lua_http_ctx     *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    action = luaL_checkinteger(L, 1);
+
+    TSHttpTxnTransformedRespCache(http_ctx->txnp, action);
+
+    return 0;
+}
+
+static int
+ts_lua_http_resp_cache_untransformed(lua_State *L)
+{
+    int                 action;
+    ts_lua_http_ctx     *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    action = luaL_checkinteger(L, 1);
+
+    TSHttpTxnUntransformedRespCache(http_ctx->txnp, action);
+
+    return 0;
 }
 
