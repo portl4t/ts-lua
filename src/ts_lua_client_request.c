@@ -7,6 +7,7 @@ static void ts_lua_inject_client_request_server_addr_api(lua_State *L);
 
 static int ts_lua_client_request_header_get(lua_State *L);
 static int ts_lua_client_request_header_set(lua_State *L);
+static int ts_lua_client_request_get_url(lua_State *L);
 static int ts_lua_client_request_get_uri(lua_State *L);
 static int ts_lua_client_request_set_uri(lua_State *L);
 static int ts_lua_client_request_set_uri_args(lua_State *L);
@@ -14,6 +15,7 @@ static int ts_lua_client_request_get_uri_args(lua_State *L);
 
 static void ts_lua_inject_client_request_socket_api(lua_State *L);
 static void ts_lua_inject_client_request_header_api(lua_State *L);
+static void ts_lua_inject_client_request_url_api(lua_State *L);
 static void ts_lua_inject_client_request_uri_api(lua_State *L);
 static void ts_lua_inject_client_request_args_api(lua_State *L);
 
@@ -29,6 +31,7 @@ ts_lua_inject_client_request_api(lua_State *L)
 
     ts_lua_inject_client_request_socket_api(L);
     ts_lua_inject_client_request_header_api(L);
+    ts_lua_inject_client_request_url_api(L);
     ts_lua_inject_client_request_uri_api(L);
     ts_lua_inject_client_request_args_api(L);
 
@@ -168,6 +171,13 @@ ts_lua_client_request_header_set(lua_State *L)
 }
 
 static void
+ts_lua_inject_client_request_url_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_client_request_get_url);
+    lua_setfield(L, -2, "get_url");
+}
+
+static void
 ts_lua_inject_client_request_uri_api(lua_State *L)
 {
     lua_pushcfunction(L, ts_lua_client_request_set_uri);
@@ -177,6 +187,22 @@ ts_lua_inject_client_request_uri_api(lua_State *L)
     lua_setfield(L, -2, "get_uri");
 }
 
+static int
+ts_lua_client_request_get_url(lua_State *L)
+{
+    const char  *url;
+    int         url_len;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    url = TSUrlStringGet(http_ctx->client_request_bufp, http_ctx->client_request_url, &url_len);
+
+    lua_pushlstring(L, url, url_len);
+
+    return 1;
+}
 
 static int
 ts_lua_client_request_get_uri(lua_State *L)
