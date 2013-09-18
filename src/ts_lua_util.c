@@ -187,7 +187,6 @@ ts_lua_get_http_ctx(lua_State *L)
 ts_lua_http_ctx *
 ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 {
-//    int                 base;
     ts_lua_http_ctx     *http_ctx;
     lua_State           *L;
     lua_State           *l;
@@ -217,7 +216,9 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
     http_ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     http_ctx->mctx = main_ctx;
+
     ts_lua_set_http_ctx(http_ctx->lua, http_ctx);
+    ts_lua_create_context_table(http_ctx->lua);
 
     return http_ctx;
 }

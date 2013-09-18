@@ -1,6 +1,8 @@
 
 #include "ts_lua_util.h"
 
+static char ts_http_context_key;
+
 static int ts_lua_context_get(lua_State *L);
 static int ts_lua_context_set(lua_State *L);
 
@@ -22,6 +24,14 @@ ts_lua_inject_context_api(lua_State *L)
     lua_setfield(L, -2, "ctx");
 }
 
+void
+ts_lua_create_context_table(lua_State *L)
+{
+    lua_pushlightuserdata(L, &ts_http_context_key);
+    lua_newtable(L);
+    lua_rawset(L, LUA_GLOBALSINDEX);
+}
+
 
 static int
 ts_lua_context_get(lua_State *L)
@@ -32,8 +42,11 @@ ts_lua_context_get(lua_State *L)
     key = luaL_checklstring(L, 2, &key_len);
 
     if (key && key_len) {
+        lua_pushlightuserdata(L, &ts_http_context_key);
+        lua_rawget(L, LUA_GLOBALSINDEX);                    // get the context table
+
         lua_pushlstring(L, key, key_len);
-        lua_rawget(L, LUA_GLOBALSINDEX);
+        lua_rawget(L, -2);
     } else {
         lua_pushnil(L);
     }
@@ -41,22 +54,22 @@ ts_lua_context_get(lua_State *L)
     return 1;
 }
 
-
 static int
 ts_lua_context_set(lua_State *L)
 {
     const char  *key;
-    const char  *val;
-    size_t      val_len;
     size_t      key_len;
 
     key = luaL_checklstring(L, 2, &key_len);
-    val = luaL_checklstring(L, 3, &val_len);
 
-    lua_pushlstring(L, key, key_len);
-    lua_pushlstring(L, val, val_len);
+    lua_pushlightuserdata(L, &ts_http_context_key);
+    lua_rawget(L, LUA_GLOBALSINDEX);                    // get the context table    -3
 
-    lua_rawset(L, LUA_GLOBALSINDEX);
+    lua_pushlstring(L, key, key_len);                   // push key                 -2
+    lua_pushvalue(L, 3);                                // push value               -1
+
+    lua_rawset(L, -3);
+    lua_pop(L, 1);                                      // pop the context table
 
     return 0;
 }

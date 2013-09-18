@@ -2,14 +2,14 @@
 
 function upper_transform(data, eos)
     if eos == 1 then
-        return string.upper(data)..'\nS.H.E.\n', eos
+        return string.upper(data)..'S.H.E.\n', eos
     else
         return string.upper(data), eos
     end
 end
 
 function send_response()
-    ts.client_response.header['Rhost'] = ts.ctx['rhost']
+    ts.client_response.header['SHE'] = ts.ctx['tb']['she']
     return 0
 end
 
@@ -21,7 +21,8 @@ function do_remap()
         return 0
     end
 
-    ts.ctx['rhost'] = string.reverse(req_host)
+    ts.ctx['tb'] = {}
+    ts.ctx['tb']['she'] = 'wo ai yu ye hua'
 
     ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
     ts.hook(TS_LUA_RESPONSE_TRANSFORM, upper_transform)

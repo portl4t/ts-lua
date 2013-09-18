@@ -159,14 +159,14 @@ ts_lua_http_get_cache_lookup_status(lua_State *L)
 static int
 ts_lua_http_set_cache_url(lua_State *L)
 {
-    char                *url;
-    int                 url_len;
+    const char          *url;
+    size_t              url_len;
 
     ts_lua_http_ctx     *http_ctx;
 
     http_ctx = ts_lua_get_http_ctx(L);
 
-    url = lua_Lchecklstring(L, 1, &url_len);
+    url = luaL_checklstring(L, 1, &url_len);
 
     if (url && url_len) {
         TSCacheUrlSet(http_ctx->txnp, url, url_len);
