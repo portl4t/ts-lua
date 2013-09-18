@@ -4,6 +4,7 @@
 static int ts_lua_client_response_header_get(lua_State *L);
 static int ts_lua_client_response_header_set(lua_State *L);
 static void ts_lua_inject_client_response_header_api(lua_State *L);
+static void ts_lua_inject_client_response_header_misc_api(lua_State *L);
 
 
 void
@@ -30,6 +31,7 @@ ts_lua_inject_client_response_header_api(lua_State *L)
 
     lua_setmetatable(L, -2); 
 
+    ts_lua_inject_client_response_header_misc_api(L);
     lua_setfield(L, -2, "header");
 }
 
@@ -94,6 +96,7 @@ ts_lua_client_response_header_set(lua_State *L)
     http_ctx = ts_lua_get_http_ctx(L);
 
     remove = 0;
+    val = NULL;
 
     /*  we skip the first argument that is the table */
     key = luaL_checklstring(L, 2, &key_len);
@@ -133,5 +136,11 @@ ts_lua_client_response_header_set(lua_State *L)
     TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
 
     return 0;
+}
+
+static void
+ts_lua_inject_client_response_header_misc_api(lua_State *L)
+{
+    return;
 }
 

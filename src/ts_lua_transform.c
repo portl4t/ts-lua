@@ -70,6 +70,10 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
         return 1;
     }
 
+    if (transform_ctx->eos) {
+        return 1;
+    }
+
     left = towrite = TSVIONTodoGet(input_vio);
     upstream_done = TSVIONDoneGet(input_vio);
     avail = TSIOBufferReaderAvail(input_reader);
@@ -130,6 +134,7 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
     TSVIONDoneSet(input_vio, upstream_done + avail);
 
     if (eos) {
+        transform_ctx->eos = 1;
         TSVIONBytesSet(transform_ctx->output_vio, transform_ctx->total);
         TSVIOReenable(transform_ctx->output_vio);
         TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_WRITE_COMPLETE, input_vio);

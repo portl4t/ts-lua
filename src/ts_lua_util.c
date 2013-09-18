@@ -4,6 +4,7 @@
 #include "ts_lua_server_request.h"
 #include "ts_lua_server_response.h"
 #include "ts_lua_client_response.h"
+#include "ts_lua_cached_response.h"
 #include "ts_lua_context.h"
 #include "ts_lua_hook.h"
 #include "ts_lua_http.h"
@@ -146,6 +147,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_server_request_api(L);
     ts_lua_inject_server_response_api(L);
     ts_lua_inject_client_response_api(L);
+    ts_lua_inject_cached_response_api(L);
 
     ts_lua_inject_context_api(L);
     ts_lua_inject_hook_api(L);

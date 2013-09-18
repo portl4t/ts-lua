@@ -25,6 +25,8 @@
 #define TS_LUA_MAX_SCRIPT_FNAME_LENGTH      1024
 #define TS_LUA_MAX_URL_LENGTH               2048
 
+#define TS_LUA_DEBUG_TAG                    "ts_lua"
+
 
 typedef struct {
     char    script[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
@@ -73,6 +75,7 @@ typedef struct {
 
     int64_t             total;
     ts_lua_http_ctx     *hctx;
+    int                 eos;
 
 } ts_lua_transform_ctx;
 
