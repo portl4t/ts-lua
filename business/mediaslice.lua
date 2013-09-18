@@ -13,21 +13,26 @@ function media_transform(data, eos)
         end
 
         ts.ctx['fit'] = ts.ctx['fit'] + need
+        ts.ctx['passed'] = ts.ctx['passed'] + slen
         return data:sub(1, need), done
 
-    else if ts.ctx['passed'] + slen >= ts.ctx['offset'] then
+    elseif ts.ctx['passed'] + slen >= ts.ctx['offset'] then
+        spos = ts.ctx['offset'] - ts.ctx['passed'] + 1
         need = ts.ctx['passed'] + slen - ts.ctx['offset']
         if need >= ts.ctx['len'] then
             need = ts.ctx['len']
             done = 1
         end
 
-        spos = ts.ctx['passed'] + slen - ts.ctx['offset']
-        epos = spos + need
+        epos = spos + need - 1
+
+        ts.ctx['fit'] = ts.ctx['fit'] + need
+        ts.ctx['passed'] = ts.ctx['passed'] + slen
+
         return data:sub(spos, epos), done
     else
         ts.ctx['passed'] = ts.ctx['passed'] + slen
-        return nil, 0
+        return nil, eos
     end
 
 end
@@ -35,7 +40,8 @@ end
 
 function read_response()
     http_status = ts.server_response.header.get_status()
-    if http_stats ~= 200 then
+    ts.debug(string.format('server_response status = %d', http_status))
+    if http_status ~= 200 then
         return
     end
 
@@ -47,7 +53,6 @@ function read_response()
     end
 
     ts.hook(TS_LUA_RESPONSE_TRANSFORM, media_transform)
-    ts.ctx['transform_add'] = 1
     ts.ctx['fit'] = 0
     ts.ctx['passed'] = 0
 end
@@ -55,13 +60,13 @@ end
 
 function cache_lookup()
     status = ts.http.get_cache_lookup_status()
-    ts.debug('cache lookup status: %d', status)
+    ts.debug(string.format('cache lookup status: %d', status))
     if status ~= TS_LUA_CACHE_LOOKUP_HIT_FRESH and status ~= TS_LUA_CACHE_LOOKUP_HIT_STALE then
         return
     end
 
     http_status = ts.cached_response.header.get_status()
-    ts.debug('cached_response http status: %d', http_status)
+    ts.debug(string.format('cached_response http status: %d', http_status))
     if http_status ~= 200 then
         return
     end
@@ -78,6 +83,7 @@ end
 function do_remap()
 
     url = ts.client_request.get_url()
+    ts.debug(string.format('src_url = %s', url))
 
     param_s = string.find(url, '?')
     start_s, start_e, start_val = string.find(url, 'start=(%d+)', param_s)
@@ -94,6 +100,11 @@ function do_remap()
         len_s, len_e, len_val = string.find(url, "/len_(%d+)", offset_e)
     end
 
+    start_val = tonumber(start_val)
+    end_val = tonumber(end_val)
+    offset_val = tonumber(offset_val)
+    len_val = tonumber(len_val)
+
     if start_val == nil or end_val == nil or offset_val == nil or len_val == nil then
         ts.http.set_resp(400, "params invalid\n")
         return 0
@@ -105,11 +116,13 @@ function do_remap()
     end
 
     if in_query then
-        slash = #url - url:reverse():find("/") + 1
+        slash = url:len() - url:reverse():find("/") + 1
         cache_url = string.format('%sstart_%d/end_%d/%s', string.sub(url, 1, slash), start_val, end_val, string.sub(url, slash+1, param_s-1))
     else
         cache_url = string.format('%s%s', string.sub(url, 1, end_e), string.sub(url, len_e))
     end
+
+    ts.debug(string.format('cache_url = %s', cache_url))
 
     ts.http.set_cache_url(cache_url)
     ts.client_request.header['Range'] = nil
