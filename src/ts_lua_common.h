@@ -47,6 +47,12 @@ typedef struct {
     TSMLoc      client_request_hdrp;
     TSMLoc      client_request_url;
 
+    TSMBuffer   server_request_bufp;
+    TSMLoc      server_request_hdrp;
+
+    TSMBuffer   server_response_bufp;
+    TSMLoc      server_response_hdrp;
+
     TSMBuffer   client_response_bufp;
     TSMLoc      client_response_hdrp;
 

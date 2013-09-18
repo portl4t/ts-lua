@@ -85,6 +85,7 @@ ts_lua_client_response_header_set(lua_State *L)
     const char  *val;
     size_t      val_len;
     size_t      key_len;
+    int         remove;
 
     TSMLoc      field_loc;
 
@@ -92,9 +93,15 @@ ts_lua_client_response_header_set(lua_State *L)
 
     http_ctx = ts_lua_get_http_ctx(L);
 
+    remove = 0;
+
     /*  we skip the first argument that is the table */
     key = luaL_checklstring(L, 2, &key_len);
-    val = luaL_checklstring(L, 3, &val_len);
+    if (lua_isnil(L, 3)) {
+        remove = 1;
+    } else {
+        val = luaL_checklstring(L, 3, &val_len);
+    }
 
     if (!http_ctx->client_response_hdrp) {
         if (TSHttpTxnClientRespGet(http_ctx->txnp, &http_ctx->client_response_bufp, 
@@ -104,12 +111,20 @@ ts_lua_client_response_header_set(lua_State *L)
     }
 
     field_loc = TSMimeHdrFieldFind(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, key, key_len);
-    if (field_loc) {
+
+    if (remove) {
+        if (field_loc) {
+            TSMimeHdrFieldDestroy(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        }
+
+    } else if (field_loc) {
         TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, 0, val, val_len);
 
     } else if (TSMimeHdrFieldCreateNamed(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, 
                     key, key_len, &field_loc) != TS_SUCCESS) { 
-            return 0;
+        TSError("[%s] TSMimeHdrFieldCreateNamed error", __FUNCTION__);
+        return 0;
+
     } else {
         TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, -1, val, val_len);
         TSMimeHdrFieldAppend(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);

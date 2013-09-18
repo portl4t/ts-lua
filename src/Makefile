@@ -4,7 +4,8 @@ COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -lssl -lluajit-5.1 -g
 INC_PATH = -Imodules -I/home/quehan/opt/tbtrunk/include
 LIB_PATH = -L/usr/local/lib -L/home/quehan/opt/luajit/lib
 
-SHARED_OBJS = ts_lua.lo  ts_lua_client_request.lo  ts_lua_client_response.lo ts_lua_util.lo ts_lua_atomic.lo \
+SHARED_OBJS = ts_lua.lo  ts_lua_client_request.lo  ts_lua_client_response.lo ts_lua_server_request.lo ts_lua_server_response.lo \
+	      ts_lua_util.lo ts_lua_atomic.lo \
 	      ts_lua_hook.lo ts_lua_context.lo ts_lua_misc.lo ts_lua_http.lo ts_lua_transform.lo
 
 ALL_OBJS = $(SHARED_OBJS)

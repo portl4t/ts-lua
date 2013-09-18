@@ -1,6 +1,8 @@
 
 #include "ts_lua_util.h"
 #include "ts_lua_client_request.h"
+#include "ts_lua_server_request.h"
+#include "ts_lua_server_response.h"
 #include "ts_lua_client_response.h"
 #include "ts_lua_context.h"
 #include "ts_lua_hook.h"
@@ -141,6 +143,8 @@ ts_lua_inject_ts_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_client_request_api(L);
+    ts_lua_inject_server_request_api(L);
+    ts_lua_inject_server_response_api(L);
     ts_lua_inject_client_response_api(L);
 
     ts_lua_inject_context_api(L);
@@ -226,8 +230,20 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
 
     main_ctx = http_ctx->mctx;
 
-    if (http_ctx->client_response_hdrp) {
+    if (http_ctx->server_request_bufp) {
+        TSHandleMLocRelease(http_ctx->server_request_bufp, TS_NULL_MLOC, http_ctx->server_request_hdrp);
+    }
+
+    if (http_ctx->server_response_bufp) {
+        TSHandleMLocRelease(http_ctx->server_response_bufp, TS_NULL_MLOC, http_ctx->server_response_hdrp);
+    }
+
+    if (http_ctx->client_response_bufp) {
         TSHandleMLocRelease(http_ctx->client_response_bufp, TS_NULL_MLOC, http_ctx->client_response_hdrp);
+    }
+
+    if (http_ctx->cached_response_bufp) {
+        TSHandleMLocRelease(http_ctx->cached_response_bufp, TS_NULL_MLOC, http_ctx->cached_response_hdrp);
     }
 
     luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, http_ctx->ref);
