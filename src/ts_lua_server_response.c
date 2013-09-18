@@ -26,6 +26,8 @@ ts_lua_inject_server_response_header_api(lua_State *L)
 {
     lua_newtable(L);         /* .header */
 
+    ts_lua_inject_server_response_header_misc_api(L);
+
     lua_createtable(L, 0, 2);       /* metatable for .header */
 
     lua_pushcfunction(L, ts_lua_server_response_header_get);
@@ -35,7 +37,6 @@ ts_lua_inject_server_response_header_api(lua_State *L)
 
     lua_setmetatable(L, -2);
 
-    ts_lua_inject_server_response_header_misc_api(L);
     lua_setfield(L, -2, "header");
 }
 
@@ -143,7 +144,8 @@ ts_lua_server_response_header_set(lua_State *L)
         TSMimeHdrFieldAppend(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, field_loc);
     }
 
-    TSHandleMLocRelease(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, field_loc);
+    if (field_loc)
+        TSHandleMLocRelease(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, field_loc);
 
     return 0;
 }

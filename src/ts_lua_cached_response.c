@@ -21,6 +21,7 @@ static void
 ts_lua_inject_cached_response_header_api(lua_State *L)
 {
     lua_newtable(L);                /*  .header */
+    ts_lua_inject_cached_response_header_misc_api(L);
 /*
     lua_createtable(L, 0, 2);
 
@@ -31,7 +32,6 @@ ts_lua_inject_cached_response_header_api(lua_State *L)
 
     lua_setmetatable(L, -2);
 */
-    ts_lua_inject_cached_response_header_misc_api(L);
     lua_setfield(L, -2, "header");
 
     return;

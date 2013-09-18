@@ -153,7 +153,7 @@ ts_lua_client_request_header_set(lua_State *L)
             TSMimeHdrFieldDestroy(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc);
         }
 
-    } if (field_loc) {
+    } else if (field_loc) {
         TSMimeHdrFieldValueStringSet(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc, 0, val, val_len);
 
     } else if (TSMimeHdrFieldCreateNamed(http_ctx->client_request_bufp, http_ctx->client_request_hdrp,
@@ -166,7 +166,8 @@ ts_lua_client_request_header_set(lua_State *L)
         TSMimeHdrFieldAppend(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc);
     }
 
-    TSHandleMLocRelease(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc);
+    if (field_loc)
+        TSHandleMLocRelease(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, field_loc);
 
     return 0;
 }
