@@ -1,6 +1,15 @@
 
-HOSTNAME = 'img01.tbcdn.cn'
+HOSTNAME = ''
 
+function __init__(argtb)
+
+    if (#argtb) < 1 then
+        print(argtb[0], 'hostname parameter required!!')
+        return -1
+    end
+
+    HOSTNAME = argtb[1]
+end
 
 function do_remap()
     req_host = ts.client_request.header.Host
