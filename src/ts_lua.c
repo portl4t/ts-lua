@@ -38,10 +38,10 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 TSReturnCode
 TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_size)
 {
-    int     ret;
+    int     ret = 0;
 
     if (argc < 3) {
-        TSError("[%s] lua script file required !!", __FUNCTION__);
+        fprintf(stderr, "[%s] lua script file required !!", __FUNCTION__);
         return TS_ERROR;
     }
 
@@ -50,13 +50,18 @@ TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_s
 
     ts_lua_instance_conf *conf = TSmalloc(sizeof(ts_lua_instance_conf));
     if (!conf) {
-        TSError("[%s] TSmalloc failed !!", __FUNCTION__);
+        fprintf(stderr, "[%s] TSmalloc failed !!", __FUNCTION__);
         return TS_ERROR;
     }
 
     sprintf(conf->script, "%s", argv[2]);
 
-    ret = ts_lua_add_module(conf, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
+    ret = ts_lua_add_module(conf, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT, argc-2, &argv[2]);
+
+    if (ret != 0) {
+        fprintf(stderr, "[%s] ts_lua_add_module failed", __FUNCTION__);
+        return TS_ERROR;
+    }
 
     *ih = conf;
 

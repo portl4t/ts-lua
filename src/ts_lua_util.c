@@ -76,16 +76,15 @@ ts_lua_new_state()
 }
 
 int
-ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
+ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int argc, char *argv[])
 {
-    int             i, ret, base;
+    int             i, ret;
+    int             t;
     lua_State       *L;
 
     for (i = 0; i < n; i++) {
 
         L = arr[i].lua;
-
-        base = lua_gettop(L);
 
         lua_newtable(L);                                    // create this module's global table
         lua_pushvalue(L, -1);
@@ -96,21 +95,47 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
         lua_setmetatable(L, -2);
         lua_replace(L, LUA_GLOBALSINDEX);
 
-        ret = luaL_loadfile(L, conf->script);
-        if (ret) {
+        if (luaL_loadfile(L, conf->script)) {
             fprintf(stderr, "[%s] luaL_loadfile %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
             lua_pop(L, 1);
             return -1;
         }
 
-        ret = lua_pcall(L, 0, 0, 0);
-        if (ret) {
+        if (lua_pcall(L, 0, 0, 0)) {
             fprintf(stderr, "[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
             lua_pop(L, 1);
             return -1;
         }
 
-        base = lua_gettop(L);
+        /* call "__init__", to parse parameters */
+        lua_getglobal(L, "__init__");
+
+        if (lua_type(L, -1) == LUA_TFUNCTION) {
+
+            lua_newtable(L);
+
+            for (t = 0; t < argc; t++) {
+                lua_pushnumber(L, t);
+                lua_pushstring(L, argv[t]);
+                lua_rawset(L, -3);
+            }
+
+            if (lua_pcall(L, 1, 1, 0)) {
+                fprintf(stderr, "[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
+                lua_pop(L, 1);
+                return -1;
+            }
+
+            ret = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+
+            if (ret)
+                return -1;          /* script parse error */
+
+        } else {
+            lua_pop(L, 1);          /* pop nil */
+        }
+
 
         lua_pushlightuserdata(L, conf);
         lua_pushvalue(L, LUA_GLOBALSINDEX);
@@ -118,7 +143,6 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
 
         lua_newtable(L);
         lua_replace(L, LUA_GLOBALSINDEX);               // set empty table to global
-        base = lua_gettop(L);
     }
 
 
