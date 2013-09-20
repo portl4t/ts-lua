@@ -128,7 +128,45 @@ Synopsis
         return 0
     end
 
+
+
+[sethost.lua]
+
+    HOSTNAME = ''
+
+    function __init__(argtb)
+
+        if (#argtb) < 1 then
+            print(argtb[0], 'hostname parameter required!!')
+            return -1
+        end
+
+        HOSTNAME = argtb[1]
+    end
+
+    function do_remap()
+        req_host = ts.client_request.header.Host
+
+        if req_host == nil then
+            return 0
+        end
+
+        ts.client_request.header['Host'] = HOSTNAME
+
+        return 0
+    end
+
+
 Description
 ======
-This module embeds Lua, via the standard Lua 5.1 interpreter or LuaJIT 2.0, into Apache Traffic Server. This module acts as remap plugin of Traffic Server.
+This module embeds Lua, via the standard Lua 5.1 interpreter or LuaJIT 2.0, into Apache Traffic Server. This module acts as remap plugin of Traffic Server, so we should realize 'do_remap' function in each lua script. We can write this in remap.config:
+
+map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/test_hdr.lua
+
+Sometimes we want to receive parameters and process them in the script, we should realize '__init__' function in the lua script, and we can write this in remap.config:
+
+map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/sethost.lua @pparam=img03.tbcdn.cn
+
+API
+======
 
