@@ -3,6 +3,14 @@ Name
 
 ts-lua - Embed the Power of Lua into TrafficServer
 
+Status
+======
+This module is being tested under our production environment
+
+Version
+======
+ts-lua has not been released yet.
+
 Synopsis
 ======
 
