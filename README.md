@@ -167,6 +167,39 @@ Sometimes we want to receive parameters and process them in the script, we shoul
 
 map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/sethost.lua @pparam=img03.tbcdn.cn
 
-API
-======
+
+
+TS API for Lua
+  Introduction
+    The API is exposed to Lua in the form of one standard packages ts. This package is in the default global scope and is always available within lua script.
+
+  ts.now
+    syntax: *val = ts.now()*
+
+    context: global
+
+    This function returns the time since the Epoch (00:00:00 UTC, January 1, 1970), measured in seconds.
+
+    Here is an example:
+
+        function send_response()
+           ts.client_response.header['Now'] = ts.now()
+           return 0
+        end
+
+  ts.debug
+    syntax: *ts.debug(MESSAGE)*
+
+    context: global
+
+    Log the MESSAGE to traffic.out if debug is enabled.
+
+    Here is an example:
+
+        function do_remap()
+           ts.debug('I am in do_remap now.')
+           return 0
+        end
+
+  ts.hook
 
