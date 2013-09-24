@@ -14,7 +14,7 @@ ts-lua has not been released yet.
 Synopsis
 ======
 
-[test_hdr.lua]
+**test_hdr.lua**
 
     function send_response()
         ts.client_response.header['Rhost'] = ts.ctx['rhost']
@@ -38,7 +38,7 @@ Synopsis
 
 
 
-[test_transform.lua]
+**test_transform.lua**
 
     function upper_transform(data, eos)
         if eos == 1 then
@@ -74,7 +74,7 @@ Synopsis
 
 
 
-[test_cache_lookup.lua]
+**test_cache_lookup.lua**
 
     function send_response()
         ts.client_response.header['Rhost'] = ts.ctx['rhost']
@@ -105,7 +105,7 @@ Synopsis
 
 
 
-[test_ret_403.lua]
+**test_ret_403.lua**
 
     function send_response()
         ts.client_response.header['Now'] = ts.now()
@@ -130,7 +130,7 @@ Synopsis
 
 
 
-[sethost.lua]
+**sethost.lua**
 
     HOSTNAME = ''
 
@@ -159,47 +159,50 @@ Synopsis
 
 Description
 ======
-This module embeds Lua, via the standard Lua 5.1 interpreter or LuaJIT 2.0, into Apache Traffic Server. This module acts as remap plugin of Traffic Server, so we should realize 'do_remap' function in each lua script. We can write this in remap.config:
+This module embeds Lua, via the standard Lua 5.1 interpreter or LuaJIT 2.0, into Apache Traffic Server. This module acts as remap plugin of Traffic Server, so we should realize **'do_remap'** function in each lua script. We can write this in remap.config:
 
 map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/test_hdr.lua
 
-Sometimes we want to receive parameters and process them in the script, we should realize '__init__' function in the lua script, and we can write this in remap.config:
+Sometimes we want to receive parameters and process them in the script, we should realize **'__init__'** function in the lua script(sethost.lua is a reference), and we can write this in remap.config:
 
 map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/sethost.lua @pparam=img03.tbcdn.cn
 
 
 
 TS API for Lua
-  Introduction
-    The API is exposed to Lua in the form of one standard packages ts. This package is in the default global scope and is always available within lua script.
+======
+Introduction
+------
+The API is exposed to Lua in the form of one standard packages ts. This package is in the default global scope and is always available within lua script.
+***
+### ts.now
 
-  ts.now
-    syntax: *val = ts.now()*
+**syntax**: *val = ts.now()*
 
-    context: global
+**context**: global
 
-    This function returns the time since the Epoch (00:00:00 UTC, January 1, 1970), measured in seconds.
+This function returns the time since the Epoch (00:00:00 UTC, January 1, 1970), measured in seconds.
 
-    Here is an example:
+Here is an example:
 
-        function send_response()
-           ts.client_response.header['Now'] = ts.now()
-           return 0
-        end
+    function send_response()
+        ts.client_response.header['Now'] = ts.now()
+        return 0
+    end
+***
+### ts.debug
+**syntax:** *ts.debug(MESSAGE)*
 
-  ts.debug
-    syntax: *ts.debug(MESSAGE)*
+**context**: global
 
-    context: global
+Log the MESSAGE to traffic.out if debug is enabled.
 
-    Log the MESSAGE to traffic.out if debug is enabled.
+Here is an example:
 
-    Here is an example:
-
-        function do_remap()
-           ts.debug('I am in do_remap now.')
-           return 0
-        end
-
-  ts.hook
+    function do_remap()
+       ts.debug('I am in do_remap now.')
+       return 0
+    end
+***
+###ts.hook
 
