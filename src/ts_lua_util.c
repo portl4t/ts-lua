@@ -277,6 +277,21 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
     TSfree(http_ctx);
 }
 
+void 
+ts_lua_destroy_transform_ctx(ts_lua_transform_ctx *transform_ctx)
+{
+    if (!transform_ctx)
+        return;
+
+    if (transform_ctx->output_reader)
+        TSIOBufferReaderFree(transform_ctx->output_reader);
+
+    if (transform_ctx->output_buffer)
+        TSIOBufferDestroy(transform_ctx->output_buffer);
+
+    TSfree(transform_ctx);
+}
+
 int
 ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
 {

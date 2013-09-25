@@ -14,7 +14,7 @@ ts_lua_transform_entry(TSCont contp, TSEvent event, void *edata)
 
     if (TSVConnClosedGet(contp)) {
         TSContDestroy(contp);
-        TSfree(transform_ctx);
+        ts_lua_destroy_transform_ctx(transform_ctx);
         return 0;
     }
 
