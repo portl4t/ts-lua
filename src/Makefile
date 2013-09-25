@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o .lo
 
-COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -lssl -lluajit-5.1 -g
-INC_PATH = -Imodules -I/usr/local/include/luajit-2.0
+COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -lssl -llua -g
+INC_PATH = -Imodules
 LIB_PATH = -L/usr/local/lib
 
 SHARED_OBJS = ts_lua.lo  ts_lua_client_request.lo  ts_lua_client_response.lo ts_lua_server_request.lo ts_lua_server_response.lo \
