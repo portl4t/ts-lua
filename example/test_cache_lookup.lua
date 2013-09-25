@@ -7,13 +7,13 @@ end
 
 
 function cache_lookup()
-    cache_status = ts.http.get_cache_lookup_status()
+    local cache_status = ts.http.get_cache_lookup_status()
     ts.ctx['cstatus'] = cache_status
 end
 
 
 function do_remap()
-    req_host = ts.client_request.header.Host
+    local req_host = ts.client_request.header.Host
 
     if req_host == nil then
         return 0
