@@ -50,9 +50,12 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
     const char          *res;
     size_t              res_len;
     int                 ret, eos;
+
     lua_State           *L;
+    TSMutex             mtxp;
 
     L = transform_ctx->hctx->lua;
+    mtxp = transform_ctx->hctx->mctx->mutexp;
 
     output_conn = TSTransformOutputVConnGet(contp);
     input_vio = TSVConnWriteVIOGet(contp);
@@ -84,6 +87,8 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
 
     if (towrite > avail)
         towrite = avail;
+
+    TSMutexLock(mtxp);
 
     blk = TSIOBufferReaderStart(input_reader);
 
@@ -129,6 +134,8 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
         blk = TSIOBufferBlockNext(blk);
 
     } while (blk && towrite > 0);
+
+    TSMutexUnlock(mtxp);
 
     TSIOBufferReaderConsume(input_reader, avail);
     TSVIONDoneSet(input_vio, upstream_done + avail);
