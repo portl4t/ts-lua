@@ -23,7 +23,7 @@ Synopsis
 
 
     function do_remap()
-        req_host = ts.client_request.header.Host
+        local req_host = ts.client_request.header.Host
 
         if req_host == nil then
             return 0
@@ -55,7 +55,7 @@ Synopsis
 
 
     function do_remap()
-        req_host = ts.client_request.header.Host
+        local req_host = ts.client_request.header.Host
 
         if req_host == nil then
             return 0
@@ -83,13 +83,13 @@ Synopsis
 
 
     function cache_lookup()
-        cache_status = ts.http.get_cache_lookup_status()
+        local cache_status = ts.http.get_cache_lookup_status()
         ts.ctx['cstatus'] = cache_status
     end
 
 
     function do_remap()
-        req_host = ts.client_request.header.Host
+        local req_host = ts.client_request.header.Host
 
         if req_host == nil then
             return 0
@@ -115,7 +115,7 @@ Synopsis
 
     function do_remap()
 
-        uri = ts.client_request.get_uri()
+        local uri = ts.client_request.get_uri()
 
         pos, len = string.find(uri, '/css/')
         if pos ~= nil then
@@ -145,7 +145,7 @@ Synopsis
     end
 
     function do_remap()
-        req_host = ts.client_request.header.Host
+        local req_host = ts.client_request.header.Host
 
         if req_host == nil then
             return 0
