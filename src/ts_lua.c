@@ -6,7 +6,7 @@
 
 #include "ts_lua_util.h"
 
-#define TS_LUA_MAX_STATE_COUNT                  256
+#define TS_LUA_MAX_STATE_COUNT                  1024
 
 static volatile int32_t ts_lua_http_next_id = 0;
 
