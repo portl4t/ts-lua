@@ -11,11 +11,11 @@ SHARED_OBJS = ts_lua.lo  ts_lua_client_request.lo  ts_lua_client_response.lo ts_
 ALL_OBJS = $(SHARED_OBJS)
 
 ALL_PRGS = 
-ALL_LIBS = libtslua.so.1
+ALL_LIBS = libtslua.so
 
 all: $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
 
-libtslua.so.1:
+libtslua.so:
 	$(COMPILE) -o $@ $< -shared $(SHARED_OBJS) $(LIB_PATH)
 .c:
 	$(COMPILE) -o $@ $< $(SHARED_OBJS) $(LIB_PATH) $(INC_PATH)
