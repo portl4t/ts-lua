@@ -12,12 +12,15 @@ static int ts_lua_client_request_get_uri(lua_State *L);
 static int ts_lua_client_request_set_uri(lua_State *L);
 static int ts_lua_client_request_set_uri_args(lua_State *L);
 static int ts_lua_client_request_get_uri_args(lua_State *L);
+static int ts_lua_client_request_get_method(lua_State *L);
+static int ts_lua_client_request_set_method(lua_State *L);
 
 static void ts_lua_inject_client_request_socket_api(lua_State *L);
 static void ts_lua_inject_client_request_header_api(lua_State *L);
 static void ts_lua_inject_client_request_url_api(lua_State *L);
 static void ts_lua_inject_client_request_uri_api(lua_State *L);
 static void ts_lua_inject_client_request_args_api(lua_State *L);
+static void ts_lua_inject_client_request_method_api(lua_State *L);
 
 static int ts_lua_client_request_client_addr_get_ip(lua_State *L);
 static int ts_lua_client_request_client_addr_get_port(lua_State *L);
@@ -34,6 +37,7 @@ ts_lua_inject_client_request_api(lua_State *L)
     ts_lua_inject_client_request_url_api(L);
     ts_lua_inject_client_request_uri_api(L);
     ts_lua_inject_client_request_args_api(L);
+    ts_lua_inject_client_request_method_api(L);
 
     lua_setfield(L, -2, "client_request");
 }
@@ -373,5 +377,42 @@ ts_lua_client_request_client_addr_get_addr(lua_State *L)
     }
 
     return 3;
+}
+
+static void
+ts_lua_inject_client_request_method_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_client_request_get_method);
+    lua_setfield(L, -2, "get_method");
+
+    lua_pushcfunction(L, ts_lua_client_request_set_method);
+    lua_setfield(L, -2, "set_method");
+}
+
+static int
+ts_lua_client_request_get_method(lua_State *L)
+{
+    const char  *method;
+    int         method_len;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    method = TSHttpHdrMethodGet(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, &method_len);
+
+    if (method && method_len) {
+        lua_pushlstring(L, method, method_len);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+static int
+ts_lua_client_request_set_method(lua_State *L)
+{
+    return 0;
 }
 
