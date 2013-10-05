@@ -1,0 +1,5 @@
+*.sh
+*.so
+*.lo
+
+src/test_*
