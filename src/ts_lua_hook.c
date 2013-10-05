@@ -10,6 +10,7 @@ typedef enum {
     TS_LUA_HOOK_SEND_REQUEST_HDR,
     TS_LUA_HOOK_READ_RESPONSE_HDR,
     TS_LUA_HOOK_SEND_RESPONSE_HDR,
+    TS_LUA_REQUEST_TRANSFORM,
     TS_LUA_RESPONSE_TRANSFORM,
     TS_LUA_HOOK_LAST
 } TSLuaHookID;
@@ -21,6 +22,7 @@ char * ts_lua_hook_id_string[] = {
     "TS_LUA_HOOK_SEND_REQUEST_HDR",
     "TS_LUA_HOOK_READ_RESPONSE_HDR",
     "TS_LUA_HOOK_SEND_RESPONSE_HDR",
+    "TS_LUA_REQUEST_TRANSFORM",
     "TS_LUA_RESPONSE_TRANSFORM",
     "TS_LUA_HOOK_LAST"
 };
@@ -94,7 +96,7 @@ ts_lua_add_hook(lua_State *L)
             lua_setglobal(L, TS_LUA_FUNCTION_SEND_RESPONSE);
             break;
 
-
+        case TS_LUA_REQUEST_TRANSFORM:
         case TS_LUA_RESPONSE_TRANSFORM:
             transform_ctx = (ts_lua_transform_ctx*)TSmalloc(sizeof(ts_lua_transform_ctx));
             memset(transform_ctx, 0, sizeof(ts_lua_transform_ctx));
@@ -102,7 +104,12 @@ ts_lua_add_hook(lua_State *L)
 
             connp = TSTransformCreate(ts_lua_transform_entry, http_ctx->txnp);
             TSContDataSet(connp, transform_ctx);
-            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_RESPONSE_TRANSFORM_HOOK, connp);
+
+            if (entry == TS_LUA_REQUEST_TRANSFORM) {
+                TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_REQUEST_TRANSFORM_HOOK, connp);
+            } else {
+                TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_RESPONSE_TRANSFORM_HOOK, connp);
+            }
 
             lua_pushlightuserdata(L, transform_ctx);
             lua_pushvalue(L, 2);
