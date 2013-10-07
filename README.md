@@ -163,7 +163,7 @@ This module embeds Lua, via the standard Lua 5.1 interpreter, into Apache Traffi
 
 map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/test_hdr.lua
 
-Sometimes we want to receive parameters and process them in the script, we should realize **'__init__'** function in the lua script(sethost.lua is a reference), and we can write this in remap.config:
+Sometimes we want to receive parameters and process them in the script, we should realize **'\__init__'** function in the lua script(sethost.lua is a reference), and we can write this in remap.config:
 
 map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/usr/lib64/trafficserver/plugins/libtslua.so @pparam=/etc/trafficserver/script/sethost.lua @pparam=img03.tbcdn.cn
 
