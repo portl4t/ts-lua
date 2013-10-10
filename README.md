@@ -195,7 +195,7 @@ Here is an example:
 
 **context**: global
 
-Log the MESSAGE to traffic.out if debug is enabled.
+Log the MESSAGE to traffic.out if debug is enabled and the debug tag is 'ts_lua'.
 
 Here is an example:
 
