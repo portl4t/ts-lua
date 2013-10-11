@@ -44,7 +44,7 @@
 
 :five: ats流程图
 
-![image](http://puppet.myccdn.com/ats-workflow.png)
+![image](https://raw.github.com/portl4t/ts-lua/phonehold/doc/ats-workflow.png)
 
 # ts-lua 使用
 
@@ -83,7 +83,7 @@
 
 **语法:** *ts.client_request.client_addr.get_ip()*
 
-**context**: ts.client
+**context**: do_remap
 
 **返回值** :char
 
@@ -108,7 +108,7 @@
 
 **语法:** *ts.client_request.client_addr.get_addr()*
 
-**context**: ts.client
+**context**: do_remap
 
 **返回值:** ip port family (int,int,char)
 
@@ -134,4 +134,134 @@
        return 0
     end
 ***
+
+### ts.client_request.get_uri()
+
+**语法:** *ts.client_request.get_uri()*
+
+**context**: do_remap
+
+**返回值** :char
+
+记录客户端请求的 Path
+
+使用举例:
+
+	function send_response()
+    	ts.client_response.header['Client_URI'] = ts.ctx['Client_URI']
+    	return 0
+	end
+
+    function do_remap()
+    	local req_client_uri = ts.client_request.get_uri()
+        ts.ctx['Client_URI] = req_client_uri
+       return 0
+    end
+***
+
+### ts.client_request.get_uri_args()
+
+**语法:** *ts.client_request.get_uri_args()*
+
+**context**: do_remap
+
+**返回值** :char
+
+记录客户端请求的参数
+
+使用举例:
+
+	function send_response()
+    	ts.client_response.header['Client_URI'] = ts.ctx['Client_URI_ARGS']
+    	return 0
+	end
+
+    function do_remap()
+    	local req_client_uri_args = ts.client_request.get_uri_args()
+        ts.ctx['Client_URI_ARGS] = req_client_uri_args
+       return 0
+    end
+***
+
+
+### ts.client_request.header
+
+**语法:** *ts.client_request.header*
+
+**context**: do_remap
+
+**返回值** :lua table
+
+记录客户端请求的Header信息
+
+使用举例:
+
+	function send_response()
+    	ts.client_response.header['HOST'] = ts.ctx['HOST']
+
+    	return 0
+	end
+
+    function do_remap()
+    	local host = ts.client_request.header.Host
+        ts.ctx['HOST] = host
+       return 0
+    end
+***
+
+### ts.client_request.header
+
+
+**语法:** *ts.client_request.header*
+
+**context**: do_remap
+
+**返回值** :lua table
+
+更改客户端请求的Header信息
+
+使用举例:
+
+	function send_response()
+    	ts.client_response.header['HOST'] = ts.ctx['HOST']
+
+    	return 0
+	end
+
+    function do_remap()
+    	ts.client_request.header['Host'] = 'google.com'
+    	ts.ctx['HOST']= ts.client_request.header.Host
+       return 0
+    end
+***
+
+
+
+### ts.client_request.get_method
+
+
+**语法:** *ts.client_request.get_method*
+
+**context**: do_remap
+
+**返回值** :char
+
+返回客户端请求的方法
+
+使用举例:
+
+	function send_response()
+    	ts.client_response.header['METHOD'] = ts.ctx['METHOD']
+
+    	return 0
+	end
+
+    function do_remap()
+    	local ts.client_method = ts.client_request.get_method()
+    	ts.ctx['METHOD']= ts.client_method
+       return 0
+    end
+***
+
+:warning: set_method set_uri_args set_uri 不支持，如果支持就可以改为请求的方法 以及做url防盗链了。:cry: 
 
