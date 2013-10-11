@@ -21,8 +21,7 @@
 
 :three:  编译安装
 
-	cd ts-lua
-	cd src
+	cd ts-lua/src
 	make
     make rpm 
 	make install
