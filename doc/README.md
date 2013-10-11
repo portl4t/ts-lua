@@ -50,14 +50,14 @@
 
 ### TS-LUA API
 
-:one:  Client 相关API
+:one:  client_request(客户端请求) 相关API
 
 
 ### ts.client_request.client_addr.get_port()
 
 **语法:** *ts.client_request.client_addr.get_port()*
 
-**context**: ts.client
+**context**: do_remap以及后续注册的hook函数
 
 **返回值**: int
 
@@ -83,9 +83,9 @@
 
 **语法:** *ts.client_request.client_addr.get_ip()*
 
-**context**: do_remap
+**context**: do_remap以及后续注册的hook函数
 
-**返回值** :char
+**返回值** : string
 
 记录客户端 Socket 连接的ip
 
@@ -108,9 +108,9 @@
 
 **语法:** *ts.client_request.client_addr.get_addr()*
 
-**context**: do_remap
+**context**: do_remap以及后续注册的hook函数
 
-**返回值:** ip port family (int,int,char)
+**返回值:** ip port family (int,int,string)
 
 记录客户端 Socket 信息
 
@@ -139,9 +139,9 @@
 
 **语法:** *ts.client_request.get_uri()*
 
-**context**: do_remap
+**context**: do_remap以及后续注册的hook函数
 
-**返回值** :char
+**返回值** : string
 
 记录客户端请求的 Path
 
@@ -163,9 +163,9 @@
 
 **语法:** *ts.client_request.get_uri_args()*
 
-**context**: do_remap
+**context**: do_remap以及后续注册的hook函数
 
-**返回值** :char
+**返回值** : string
 
 记录客户端请求的参数
 
@@ -186,15 +186,15 @@
 
 ### ts.client_request.header
 
-**语法:** *ts.client_request.header*
+**语法:** *ts.client_request.header[HEADER_NAME] / ts.client_request.header.HEADER_NAME*
 
-**context**: do_remap
+**context**: do_remap以及后续注册的hook函数
 
 **返回值** :lua table
 
-记录客户端请求的Header信息
+可以访问和修改客户端请求的Header信息
 
-使用举例:
+访问客户端请求header使用举例:
 
 	function send_response()
     	ts.client_response.header['HOST'] = ts.ctx['HOST']
@@ -207,20 +207,8 @@
         ts.ctx['HOST] = host
        return 0
     end
-***
 
-### ts.client_request.header
-
-
-**语法:** *ts.client_request.header*
-
-**context**: do_remap
-
-**返回值** :lua table
-
-更改客户端请求的Header信息
-
-使用举例:
+修改客户端请求header使用举例:
 
 	function send_response()
     	ts.client_response.header['HOST'] = ts.ctx['HOST']
@@ -240,11 +228,11 @@
 ### ts.client_request.get_method
 
 
-**语法:** *ts.client_request.get_method*
+**语法:** *ts.client_request.get_method()*
 
-**context**: do_remap
+**context**: do_remap以及后续注册的hook函数
 
-**返回值** :char
+**返回值** : string
 
 返回客户端请求的方法
 
