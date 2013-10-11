@@ -114,6 +114,8 @@
 
 记录客户端 Socket 信息
 
+:warning: family 为判定客户端是ipv4 还是ipv6
+
 使用举例:
 
 	function send_response()
