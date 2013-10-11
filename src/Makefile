@@ -24,7 +24,8 @@ libtslua.so:
 .c.lo:
 	$(COMPILE) -c -fPIC -o $@ $<  $(INC_PATH)
 install:
-	/bin/cp -f $(ALL_LIBS) /usr/lib64/trafficserver/plugins/
+	/bin/cp -f $(ALL_LIBS) $(PREFIX)/usr/lib64/trafficserver/plugins/
 clean:
-	rm -f $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
-
+	rm -f $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS) *.rpm
+rpm:
+	rpmbuild -bb ts_lua.spec
