@@ -212,11 +212,11 @@ TODO
 =======
 Short Term
 ------
-    * ts.client_request.set_method
-    * ts.client_request.set_uri
-    * ts.client_request.set_uri_args
+* ts.client_request.set_method
+* ts.client_request.set_uri
+* ts.client_request.set_uri_args
 
 Long Term
 ------
-    * ts.regex
+* ts.regex
 
