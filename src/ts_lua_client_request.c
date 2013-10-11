@@ -234,7 +234,16 @@ ts_lua_client_request_get_uri(lua_State *L)
 static int
 ts_lua_client_request_set_uri(lua_State *L)
 {
-    return 0;
+     const char  *param;
+    size_t      param_len;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    param = luaL_checklstring(L, 1, &param_len);
+    TSUrlPathSet(http_ctx->client_request_bufp, http_ctx->client_request_url, param, param_len);
+    return 1;
 }
 
 

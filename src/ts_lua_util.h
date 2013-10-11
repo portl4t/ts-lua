@@ -21,3 +21,19 @@ int ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata);
 
 #endif
 
+/usr/bin/
+/usr/share/
+
+
+%package devel
+Summary: LuaJIT development libraries and header files
+Group: Development/Libraries
+Requires: LuaJIT = %{version}-%{release}
+%description devel
+The trafficserver-devel package include plugin development libraries and
+header files
+
+%files devel
+%defattr(-,root,root,-)
+/usr/include/
+/usr/lib64
