@@ -1,11 +1,11 @@
 Name
 ======
 
-ts-lua - Embed the Power of Lua into TrafficServer
+ts-lua - Embed the Power of Lua into TrafficServer.
 
 Status
 ======
-This module is being tested under our production environment
+This module is being tested under our production environment.
 
 Version
 ======
@@ -220,7 +220,7 @@ ts.hook
 **context**: do_remap or later
 
 **description**: Hooks are points in http transaction processing where we can step in and do some work.
-FUNCTION will be called when the http transaction steps in to HOOK_POINT
+FUNCTION will be called when the http transaction steps in to HOOK_POINT.
 
 Here is an example:
 
@@ -243,6 +243,32 @@ Hook point constants
     TS_LUA_REQUEST_TRANSFORM
     TS_LUA_RESPONSE_TRANSFORM
     
+These constants are usually used in ts.hook method call.
+
+
+ts.ctx
+------
+**syntax**: *ts.ctx[KEY]*
+
+**context**: do_remap or later
+
+**description**: This table can be used to store per-request Lua context data and has a life time identical to the current request.
+
+Here is an example:
+
+    function send_response()
+        ts.client_response.header['RR'] = ts.ctx['rhost']
+        return 0
+    end
+    
+    function do_remap()
+        local req_host = ts.client_request.header.Host
+        ts.ctx['rhost'] = string.reverse(req_host)
+        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
+        return 0
+    end
+
+
 
 TODO
 =======
