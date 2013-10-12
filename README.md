@@ -206,3 +206,17 @@ Here is an example:
 ***
 ###ts.hook
 
+
+
+TODO
+=======
+Short Term
+------
+    * ts.client_request.set_method
+    * ts.client_request.set_uri
+    * ts.client_request.set_uri_args
+
+Long Term
+------
+    * ts.regex
+
