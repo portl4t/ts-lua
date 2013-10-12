@@ -174,14 +174,16 @@ TS API for Lua
 Introduction
 ------
 The API is exposed to Lua in the form of one standard packages ts. This package is in the default global scope and is always available within lua script.
-***
-### ts.now
 
+
+
+ts.now
+------
 **syntax**: *val = ts.now()*
 
 **context**: global
 
-This function returns the time since the Epoch (00:00:00 UTC, January 1, 1970), measured in seconds.
+**description**: This function returns the time since the Epoch (00:00:00 UTC, January 1, 1970), measured in seconds.
 
 Here is an example:
 
@@ -189,13 +191,15 @@ Here is an example:
         ts.client_response.header['Now'] = ts.now()
         return 0
     end
-***
-### ts.debug
-**syntax:** *ts.debug(MESSAGE)*
+
+
+ts.debug
+------
+**syntax**: *ts.debug(MESSAGE)*
 
 **context**: global
 
-Log the MESSAGE to traffic.out if debug is enabled and the debug tag is 'ts_lua'.
+**description**: Log the MESSAGE to traffic.out if debug is enabled.
 
 Here is an example:
 
@@ -203,13 +207,42 @@ Here is an example:
        ts.debug('I am in do_remap now.')
        return 0
     end
-***
-###ts.hook
+    
+The debug tag is ts_lua and we should write this in records.config:
+    
+    CONFIG proxy.config.diags.debug.tags STRING ts_lua
+    
 
+ts.hook
+------
+**syntax**: *ts.hook(HOOK_POINT, FUNCTION)*
 
+**context**: do_remap or later
 
+**description**: Hooks are points in http transaction processing where we can step in and do some work.
+FUNCTION will be called when the http transaction steps in to HOOK_POINT
 
+Here is an example:
 
+    function send_response()
+        s.client_response.header['SHE'] = 'belief'
+    end
+    
+    function do_remap()
+        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
+    end
+
+Hook point constants
+------
+**context**: do_remap or later
+
+    TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE
+    TS_LUA_HOOK_SEND_REQUEST_HDR
+    TS_LUA_HOOK_READ_RESPONSE_HDR
+    TS_LUA_HOOK_SEND_RESPONSE_HDR
+    TS_LUA_REQUEST_TRANSFORM
+    TS_LUA_RESPONSE_TRANSFORM
+    
 
 TODO
 =======
