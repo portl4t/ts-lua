@@ -208,13 +208,14 @@ Here is an example:
 
 
 
+
+
+
 TODO
 =======
 Short Term
 ------
-* ts.client_request.set_method
-* ts.client_request.set_uri
-* ts.client_request.set_uri_args
+* ts.http.intercept
 
 Long Term
 ------
