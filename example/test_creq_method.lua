@@ -5,12 +5,6 @@ function send_response()
 end
 
 
-function cache_lookup()
-    local cache_status = ts.http.get_cache_lookup_status()
-    ts.ctx['cstatus'] = cache_status
-end
-
-
 function do_remap()
     local method = ts.client_request.get_method()
 
