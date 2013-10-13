@@ -269,6 +269,113 @@ Here is an example:
     end
 
 
+ts.http.get_cache_lookup_status
+------
+**syntax**: *ts.http.get_cache_lookup_status()*
+
+**context**: function @ TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE hook point
+
+**description**: This function can be used to get cache lookup status.
+
+Here is an example:
+
+    function send_response()
+        ts.client_response.header['CStatus'] = ts.ctx['cstatus']
+    end
+    
+    function cache_lookup()
+        local cache_status = ts.http.get_cache_lookup_status()
+        ts.ctx['cstatus'] = cache_status
+    end
+    
+    function do_remap()
+        ts.hook(TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE, cache_lookup)
+        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
+        return 0
+    end
+
+
+Http cache lookup status constants
+------
+**context**: global
+
+    TS_LUA_CACHE_LOOKUP_MISS (0)
+    TS_LUA_CACHE_LOOKUP_HIT_STALE (1)
+    TS_LUA_CACHE_LOOKUP_HIT_FRESH (2)
+    TS_LUA_CACHE_LOOKUP_SKIPPED (3)
+
+
+ts.http.set_cache_url
+------
+**syntax**: ts.http.set_cache_url(KEY_URL)
+
+**context**: do_remap
+
+**description**: This function can be used to modify the cache key for the request.
+
+Here is an example:
+
+    function do_remap()
+        ts.http.set_cache_url('http://127.0.0.1:8080/abc/')
+        return 0
+    end
+
+
+ts.http.resp_cache_transformed
+------
+**syntax**: ts.http.resp_cache_transformed(BOOL)
+
+**context**: do_remap or later
+
+**description**: This function can be used to tell trafficserver whether to cache the transformed data.
+
+Here is an example:
+
+    function upper_transform(data, eos)
+        if eos == 1 then
+            return string.upper(data)..'S.H.E.\n', eos
+        else
+            return string.upper(data), eos
+        end
+    end
+    
+    function do_remap()
+        ts.hook(TS_LUA_RESPONSE_TRANSFORM, upper_transform)
+        ts.http.resp_cache_transformed(0)
+        ts.http.resp_cache_untransformed(1)
+        return 0
+    end
+    
+This function is usually called after we hook TS_LUA_RESPONSE_TRANSFORM.
+
+
+ts.http.resp_cache_untransformed
+------
+**syntax**: ts.http.resp_cache_untransformed(BOOL)
+
+**context**: do_remap or later
+
+**description**: This function can be used to tell trafficserver whether to cache the untransformed data.
+
+Here is an example:
+
+    function upper_transform(data, eos)
+        if eos == 1 then
+            return string.upper(data)..'S.H.E.\n', eos
+        else
+            return string.upper(data), eos
+        end
+    end
+    
+    function do_remap()
+        ts.hook(TS_LUA_RESPONSE_TRANSFORM, upper_transform)
+        ts.http.resp_cache_transformed(0)
+        ts.http.resp_cache_untransformed(1)
+        return 0
+    end
+    
+This function is usually called after we hook TS_LUA_RESPONSE_TRANSFORM.
+
 
 TODO
 =======
