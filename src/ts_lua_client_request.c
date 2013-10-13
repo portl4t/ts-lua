@@ -234,6 +234,22 @@ ts_lua_client_request_get_uri(lua_State *L)
 static int
 ts_lua_client_request_set_uri(lua_State *L)
 {
+    const char  *path;
+    size_t      path_len;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    path = luaL_checklstring(L, 1, &path_len);
+
+    if (*path == '/') {
+        path++;
+        path_len--;
+    }
+
+    TSUrlPathSet(http_ctx->client_request_bufp, http_ctx->client_request_url, path, path_len);
+
     return 0;
 }
 
@@ -413,6 +429,17 @@ ts_lua_client_request_get_method(lua_State *L)
 static int
 ts_lua_client_request_set_method(lua_State *L)
 {
+    const char  *method;
+    size_t      method_len;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    method = luaL_checklstring(L, 1, &method_len);
+
+    TSHttpHdrMethodSet(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, method, method_len);
+
     return 0;
 }
 
