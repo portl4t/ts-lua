@@ -285,7 +285,11 @@ Here is an example:
     
     function cache_lookup()
         local cache_status = ts.http.get_cache_lookup_status()
-        ts.ctx['cstatus'] = cache_status
+        if cache_status == TS_LUA_CACHE_LOOKUP_HIT_FRESH:
+            ts.ctx['cstatus'] = 'hit'
+        else
+            ts.ctx['cstatus'] = 'not hit'
+        end
     end
     
     function do_remap()
@@ -307,7 +311,7 @@ Http cache lookup status constants
 
 ts.http.set_cache_url
 ------
-**syntax**: ts.http.set_cache_url(KEY_URL)
+**syntax**: *ts.http.set_cache_url(KEY_URL)*
 
 **context**: do_remap
 
@@ -323,7 +327,7 @@ Here is an example:
 
 ts.http.resp_cache_transformed
 ------
-**syntax**: ts.http.resp_cache_transformed(BOOL)
+**syntax**: *ts.http.resp_cache_transformed(BOOL)*
 
 **context**: do_remap or later
 
@@ -351,7 +355,7 @@ This function is usually called after we hook TS_LUA_RESPONSE_TRANSFORM.
 
 ts.http.resp_cache_untransformed
 ------
-**syntax**: ts.http.resp_cache_untransformed(BOOL)
+**syntax**: *ts.http.resp_cache_untransformed(BOOL)*
 
 **context**: do_remap or later
 
@@ -375,6 +379,106 @@ Here is an example:
     end
     
 This function is usually called after we hook TS_LUA_RESPONSE_TRANSFORM.
+
+
+ts.client_request.client_addr.get_addr
+------
+**syntax**: *ts.client_request.client_addr.get_addr()*
+
+**context**: do_remap or later
+
+**description**: This function can be used to get socket address of the client.
+
+Here is an example:
+
+    function do_remap
+        ip, port, family = ts.client_request.client_addr.get_addr()
+        return 0
+    end
+
+The ts.client_request.client_addr.get_addr function returns three values, ip is a string, port and family is number.
+
+
+ts.client_request.get_method
+------
+**syntax**: *ts.client_request.get_method()*
+
+**context**: do_remap or later
+
+**description**: This function can be used to retrieve the current request's request method name. String like "GET" or 
+"POST" is returned.
+
+
+ts.client_request.set_method
+------
+**syntax**: *ts.client_request.set_method(METHOD_NAME)*
+
+**context**: do_remap
+
+**description**: This function can be used to override the current request's request method with METHOD_NAME.
+
+
+ts.client_request.get_url
+------
+**syntax**: *ts.client_request.get_url()*
+
+**context**: do_remap or later
+
+**description**: This function can be used to retrieve the whole request's url.
+
+
+ts.client_request.get_uri
+------
+**syntax**: *ts.client_request.get_uri()*
+
+**context**: do_remap or later
+
+**description**: This function can be used to retrieve the request's path.
+
+
+ts.client_request.set_uri
+------
+**syntax**: *ts.client_request.set_uri(PATH)*
+
+**context**: do_remap
+
+**description**: This function can be used to override the request's path.
+
+
+ts.client_request.get_uri_args
+------
+**syntax**: *ts.client_request.get_uri_args()*
+
+**context**: do_remap or later
+
+**description**: This function can be used to retrieve the request's query string.
+
+
+ts.client_request.set_uri_args
+------
+**syntax**: *ts.client_request.set_uri_args(QUERY_STRING)*
+
+**context**: do_remap
+
+**description**: This function can be used to override the request's query string.
+
+
+ts.client_request.header.HEADER
+------
+**syntax**: *ts.client_request.header.HEADER = VALUE*
+**syntax**: *ts.client_request.header[HEADER] = VALUE*
+**syntax**: *VALUE = ts.client_request.header.HEADER*
+
+**context**: do_remap or later
+
+**description**: Set, add to, clear or get the current request's HEADER.
+
+Here is an example:
+
+    function do_remap()
+        local req_host = ts.client_request.header.Host
+        ts.client_request.header['Host'] = 'a.tbcdn.cn'
+    end
 
 
 TODO
