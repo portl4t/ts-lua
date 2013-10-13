@@ -466,7 +466,9 @@ ts.client_request.set_uri_args
 ts.client_request.header.HEADER
 ------
 **syntax**: *ts.client_request.header.HEADER = VALUE*
+
 **syntax**: *ts.client_request.header[HEADER] = VALUE*
+
 **syntax**: *VALUE = ts.client_request.header.HEADER*
 
 **context**: do_remap or later
