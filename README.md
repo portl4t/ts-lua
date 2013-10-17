@@ -488,6 +488,7 @@ TODO
 Short Term
 ------
 * ts.http.intercept
+* non-blocking I/O operation
 
 Long Term
 ------
