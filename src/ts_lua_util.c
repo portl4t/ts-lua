@@ -9,6 +9,7 @@
 #include "ts_lua_hook.h"
 #include "ts_lua_http.h"
 #include "ts_lua_misc.h"
+#include "ts_lua_log.h"
 
 static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
@@ -172,6 +173,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_server_response_api(L);
     ts_lua_inject_client_response_api(L);
     ts_lua_inject_cached_response_api(L);
+    ts_lua_inject_log_api(L);
 
     ts_lua_inject_context_api(L);
     ts_lua_inject_hook_api(L);
