@@ -1,6 +1,6 @@
 .SUFFIXES: .c .o .lo
 
-COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -lssl -llua -g
+COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -lssl -llua-5.1 -g
 INC_PATH = -Imodules
 LIB_PATH = -L/usr/local/lib
 
