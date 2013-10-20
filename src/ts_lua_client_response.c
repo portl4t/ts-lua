@@ -3,7 +3,9 @@
 
 static int ts_lua_client_response_header_get(lua_State *L);
 static int ts_lua_client_response_header_set(lua_State *L);
+static int ts_lua_client_response_header_get_status(lua_State *L);
 static void ts_lua_inject_client_response_header_api(lua_State *L);
+static void ts_lua_inject_client_response_get_status_api(lua_State *L);
 static void ts_lua_inject_client_response_header_misc_api(lua_State *L);
 
 
@@ -13,6 +15,7 @@ ts_lua_inject_client_response_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_client_response_header_api(L);
+    ts_lua_inject_client_response_get_status_api(L);
 
     lua_setfield(L, -2, "client_response");
 }
@@ -145,3 +148,33 @@ ts_lua_inject_client_response_header_misc_api(lua_State *L)
     return;
 }
 
+static void
+ts_lua_inject_client_response_get_status_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_client_response_header_get_status);
+    lua_setfield(L, -2, "get_status");
+}
+
+static int
+ts_lua_client_response_header_get_status(lua_State *L)
+{
+    int              status;
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    if (!http_ctx->client_response_hdrp) {
+        if (TSHttpTxnClientRespGet(http_ctx->txnp,
+                    &http_ctx->client_response_bufp, &http_ctx->client_response_hdrp) != TS_SUCCESS) {
+
+            lua_pushnil(L);
+            return 1;
+        }
+    }
+
+    status = TSHttpHdrStatusGet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp);
+
+    lua_pushinteger(L, status);
+
+    return 1;
+}
