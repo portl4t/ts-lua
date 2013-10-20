@@ -14,6 +14,8 @@ static int ts_lua_client_request_set_uri_args(lua_State *L);
 static int ts_lua_client_request_get_uri_args(lua_State *L);
 static int ts_lua_client_request_get_method(lua_State *L);
 static int ts_lua_client_request_set_method(lua_State *L);
+static int ts_lua_client_request_get_body_size(lua_State * L);
+static int ts_lua_client_request_get_header_size(lua_State *L);
 
 static void ts_lua_inject_client_request_socket_api(lua_State *L);
 static void ts_lua_inject_client_request_header_api(lua_State *L);
@@ -21,6 +23,9 @@ static void ts_lua_inject_client_request_url_api(lua_State *L);
 static void ts_lua_inject_client_request_uri_api(lua_State *L);
 static void ts_lua_inject_client_request_args_api(lua_State *L);
 static void ts_lua_inject_client_request_method_api(lua_State *L);
+static void ts_lua_inject_client_request_body_size_api(lua_State *L);
+static void ts_lua_inject_client_request_header_size_api(lua_State *L);
+
 
 static int ts_lua_client_request_client_addr_get_ip(lua_State *L);
 static int ts_lua_client_request_client_addr_get_port(lua_State *L);
@@ -38,6 +43,8 @@ ts_lua_inject_client_request_api(lua_State *L)
     ts_lua_inject_client_request_uri_api(L);
     ts_lua_inject_client_request_args_api(L);
     ts_lua_inject_client_request_method_api(L);
+    ts_lua_inject_client_request_body_size_api(L);
+    ts_lua_inject_client_request_header_size_api(L);
 
     lua_setfield(L, -2, "client_request");
 }
@@ -438,8 +445,52 @@ ts_lua_client_request_set_method(lua_State *L)
 
     method = luaL_checklstring(L, 1, &method_len);
 
-    TSHttpHdrMethodSet(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, method, method_len);
+    if (method) {
+        TSHttpHdrMethodSet(http_ctx->client_request_bufp, http_ctx->client_request_hdrp, method, method_len);
+    }
 
     return 0;
+}
+
+static void
+ts_lua_inject_client_request_body_size_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_client_request_get_body_size);
+    lua_setfield(L, -2, "get_body_size");
+}
+
+static int
+ts_lua_client_request_get_body_size(lua_State *L)
+{
+    int64_t body_size;
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    body_size = TSHttpTxnClientReqBodyBytesGet(http_ctx->txnp);
+    lua_pushnumber(L, body_size);
+
+    return 1;
+}
+
+static void
+ts_lua_inject_client_request_header_size_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_client_request_get_header_size);
+    lua_setfield(L, -2, "get_header_size");
+}
+
+static int
+ts_lua_client_request_get_header_size(lua_State *L)
+{
+    int header_size;
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    header_size = TSHttpTxnClientReqHdrBytesGet(http_ctx->txnp);
+    lua_pushnumber(L,header_size);
+
+    return 1;
 }
 
