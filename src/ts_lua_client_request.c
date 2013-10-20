@@ -148,17 +148,7 @@ ts_lua_client_request_header_set(lua_State *L)
 
     remove = 0;
     val = NULL;
-	//int num = lua_gettop(L);
-//	TSDebug(TS_LUA_DEBUG_TAG,"in header L's num is [%d]",num);//reggie
-	//stackDump(L);
-#if 0
-for (int i = 2;i < 10; i++){
-	  if(lua_isnil(L,i))
-	  	break;
-	  key = luaL_checklstring(L, 2, &key_len);
-       TSDebug(TS_LUA_DEBUG_TAG,"in header set  luaL_checklstring(L, [%d], &key_len) is <%s>",i,key);//reggie
-  }
-#endif
+
     /*   we skip the first argument that is the table */
     key = luaL_checklstring(L, 2, &key_len);
     if (lua_isnil(L, 3)) {

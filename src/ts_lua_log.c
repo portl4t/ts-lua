@@ -33,32 +33,33 @@ ts_lua_inject_log_object_creat_api(lua_State * L)
 static int 
 ts_lua_log_object_creat(lua_State *L)
 {
-    const char *log_name;
-    size_t name_len;
-    int log_mode;
-	TSReturnCode error;
-	
-    ts_lua_http_ctx  *http_ctx;
+     const char *log_name;
+     size_t name_len;
+	 int log_mode;
+ 	 TSReturnCode error;
 
-    http_ctx = ts_lua_get_http_ctx(L);
+     ts_lua_http_ctx  *http_ctx;
 
-    log_name = luaL_checklstring(L, -2, &name_len);
-    
-    if (lua_isnil(L, 3)) {
+     http_ctx = ts_lua_get_http_ctx(L);
+
+     log_name = luaL_checklstring(L, -2, &name_len);
+
+     if (lua_isnil(L, 3)) {
         TSError("no log name!!");
         return -1;
-    } else {
+     } else {
         log_mode = luaL_checknumber(L, 3);
-    }
-
-    error = TSTextLogObjectCreate(log_name, log_mode, &log);
-    if(!log || error == TS_ERROR)
-    {
-      TSError("creat log error <%s>",log_name);
-      return -1;
-    }
  
-    return 0;
+     }
+  
+     error = TSTextLogObjectCreate(log_name, log_mode, &log);
+
+     if(!log || error == TS_ERROR)
+     {
+       TSError("creat log error <%s>",log_name);
+       return -1;
+     }
+      return 0;
 }
 
 static void 
