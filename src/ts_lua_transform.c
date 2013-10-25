@@ -126,7 +126,7 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
 
         lua_pop(L, 2);
 
-        if (ret || eos) {            // EOS
+        if (ret || (eos && !towrite)) {            // EOS
             eos = 1;
             break;
         }
