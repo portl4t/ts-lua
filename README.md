@@ -489,6 +489,7 @@ Short Term
 ------
 * ts.http.intercept
 * non-blocking I/O operation
+* ts.fetch
 
 Long Term
 ------
