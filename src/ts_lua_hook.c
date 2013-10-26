@@ -82,7 +82,7 @@ ts_lua_add_hook(lua_State *L)
             TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, http_ctx->main_contp);
             lua_pushvalue(L, 2);
             lua_setglobal(L, TS_LUA_FUNCTION_SEND_REQUEST);
-             break;
+            break;
 
         case TS_LUA_HOOK_READ_RESPONSE_HDR:
             TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_READ_RESPONSE_HDR_HOOK, http_ctx->main_contp);
