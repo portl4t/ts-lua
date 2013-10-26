@@ -279,6 +279,68 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
     TSfree(http_ctx);
 }
 
+void
+ts_lua_set_http_intercept_ctx(lua_State *L, ts_lua_http_intercept_ctx  *ictx)
+{
+    lua_pushliteral(L, "__ts_http_intercept_ctx");
+    lua_pushlightuserdata(L, ictx);
+    lua_rawset(L, LUA_GLOBALSINDEX);
+}
+
+ts_lua_http_intercept_ctx *
+ts_lua_get_http_intercept_ctx(lua_State *L)
+{
+    ts_lua_http_intercept_ctx  *ictx;
+
+    lua_pushliteral(L, "__ts_http_intercept_ctx");
+    lua_rawget(L, LUA_GLOBALSINDEX);
+    ictx = lua_touserdata(L, -1);
+
+    lua_pop(L, 1);                      // pop the ictx out
+
+    return ictx;
+}
+
+ts_lua_http_intercept_ctx *
+ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
+{
+    lua_State           *L;
+    ts_lua_http_intercept_ctx   *ictx;
+
+    L = http_ctx->lua;
+
+    ictx = TSmalloc(sizeof(ts_lua_http_intercept_ctx));
+    memset(ictx, 0, sizeof(ts_lua_http_intercept_ctx));
+
+    ictx->lua = lua_newthread(L);
+
+    ictx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    ictx->hctx = http_ctx;
+
+    ts_lua_set_http_intercept_ctx(ictx->lua, ictx);
+
+    return ictx;
+}
+
+void 
+ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx)
+{
+    ts_lua_http_ctx   *http_ctx;
+
+    http_ctx = ictx->hctx;
+
+    if (ictx->net_vc)
+        TSVConnClose(ictx->net_vc);
+
+    TS_LUA_RELEASE_IO_HANDLE((&ictx->input));
+    TS_LUA_RELEASE_IO_HANDLE((&ictx->output));
+
+    luaL_unref(http_ctx->lua, LUA_REGISTRYINDEX, ictx->ref);
+    TSfree(ictx);
+    return;
+}
+
 void 
 ts_lua_destroy_transform_ctx(ts_lua_transform_ctx *transform_ctx)
 {

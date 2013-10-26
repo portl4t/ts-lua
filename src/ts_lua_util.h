@@ -17,6 +17,10 @@ void ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx);
 
 void ts_lua_destroy_transform_ctx(ts_lua_transform_ctx *transform_ctx);
 
+ts_lua_http_intercept_ctx * ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx);
+ts_lua_http_intercept_ctx * ts_lua_get_http_intercept_ctx(lua_State *L);
+void ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx);
+
 int ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata);
 
 #endif

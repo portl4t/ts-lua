@@ -5,6 +5,7 @@
 static int ts_lua_get_now_time(lua_State *L);
 static int ts_lua_debug(lua_State *L);
 static int ts_lua_error(lua_State *L);
+static int ts_lua_sleep(lua_State *L);
 
 
 void
@@ -21,6 +22,10 @@ ts_lua_inject_misc_api(lua_State *L)
     /* ts.error(...) */
     lua_pushcfunction(L, ts_lua_error);
     lua_setfield(L, -2, "error");
+
+    /* ts.sleep(...) */
+    lua_pushcfunction(L, ts_lua_sleep);
+    lua_setfield(L, -2, "sleep");
 }
 
 static int
@@ -51,5 +56,18 @@ ts_lua_error(lua_State *L)
     msg = luaL_checkstring(L, 1);
     TSError(msg);
     return 0;
+}
+
+static int
+ts_lua_sleep(lua_State *L)
+{
+    int     sec;
+    ts_lua_http_intercept_ctx *ictx;
+
+    ictx = ts_lua_get_http_intercept_ctx(L);
+    sec = luaL_checknumber(L, 1);
+
+    TSContSchedule(ictx->contp, sec*1000, TS_THREAD_POOL_DEFAULT);
+    return lua_yield(L, 0);
 }
 

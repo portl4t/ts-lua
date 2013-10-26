@@ -69,6 +69,12 @@ typedef struct {
 
 
 typedef struct {
+    TSVIO               vio;
+    TSIOBuffer          buffer;
+    TSIOBufferReader    reader;
+} ts_lua_io_handle;
+
+typedef struct {
     TSVIO               output_vio;
     TSIOBuffer          output_buffer;
     TSIOBufferReader    output_reader;
@@ -78,6 +84,31 @@ typedef struct {
     int                 eos;
 
 } ts_lua_transform_ctx;
+
+
+typedef struct {
+    lua_State           *lua;
+    TSCont              contp;
+    ts_lua_io_handle    input;
+    ts_lua_io_handle    output;
+    TSVConn             net_vc;
+
+    ts_lua_http_ctx     *hctx;
+    int                 ref;
+    char                recv_complete;
+    char                send_complete;
+} ts_lua_http_intercept_ctx;
+
+#define TS_LUA_RELEASE_IO_HANDLE(ih) do {   \
+    if (ih->reader) {                       \
+        TSIOBufferReaderFree(ih->reader);   \
+        ih->reader = NULL;                  \
+    }                                       \
+    if (ih->buffer) {                       \
+        TSIOBufferDestroy(ih->buffer);      \
+        ih->buffer = NULL;                  \
+    }                                       \
+} while (0)
 
 #endif
 

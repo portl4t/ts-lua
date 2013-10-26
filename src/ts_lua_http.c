@@ -1,5 +1,6 @@
 
 #include "ts_lua_util.h"
+#include "ts_lua_http_intercept.h"
 
 typedef enum {
     TS_LUA_CACHE_LOOKUP_MISS,
@@ -38,6 +39,7 @@ ts_lua_inject_http_api(lua_State *L)
     ts_lua_inject_http_retset_api(L);
     ts_lua_inject_http_cache_api(L);
     ts_lua_inject_http_transform_api(L);
+    ts_lua_inject_http_intercept_api(L);
 
     lua_setfield(L, -2, "http");
 }
