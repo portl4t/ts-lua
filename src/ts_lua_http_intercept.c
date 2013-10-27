@@ -74,7 +74,11 @@ ts_lua_http_intercept_process(ts_lua_http_ctx *http_ctx, TSVConn conn)
 {
     TSCont          contp;
     lua_State       *l;
+    TSMutex         mtxp;
     ts_lua_http_intercept_ctx   *ictx;
+
+    mtxp = http_ctx->mctx->mutexp;
+    TSMutexLock(mtxp);
 
     ictx = ts_lua_create_http_intercept_ctx(http_ctx);
 
@@ -92,6 +96,9 @@ ts_lua_http_intercept_process(ts_lua_http_ctx *http_ctx, TSVConn conn)
     // invoke function here
     lua_getglobal(l, TS_LUA_FUNCTION_HTTP_INTERCEPT);
     ts_lua_http_intercept_run_coroutine(ictx);
+
+    TSMutexUnlock(mtxp);
+
 }
 
 static void
@@ -113,8 +120,12 @@ ts_lua_http_intercept_setup_write(ts_lua_http_intercept_ctx *ictx)
 static int
 ts_lua_http_intercept_handler(TSCont contp, TSEvent event, void *edata)
 {
-    int     ret;
-    ts_lua_http_intercept_ctx *ictx = (ts_lua_http_intercept_ctx*)TSContDataGet(contp);
+    int             ret;
+    TSMutex         mtxp;
+    ts_lua_http_intercept_ctx *ictx;
+
+    ictx = (ts_lua_http_intercept_ctx*)TSContDataGet(contp);
+    mtxp = NULL;
 
     if (edata == ictx->input.vio) {
         ret = ts_lua_http_intercept_process_read(event, ictx);
@@ -123,13 +134,25 @@ ts_lua_http_intercept_handler(TSCont contp, TSEvent event, void *edata)
         ret = ts_lua_http_intercept_process_write(event, ictx);
 
     } else {
+        mtxp = ictx->hctx->mctx->mutexp;
+        TSMutexLock(mtxp);
         ret = ts_lua_http_intercept_run_coroutine(ictx);
     }
 
     if (ret || (ictx->send_complete && ictx->recv_complete)) {
+
         TSContDestroy(contp);
+
+        if (!mtxp) {
+            mtxp = ictx->hctx->mctx->mutexp;
+            TSMutexLock(mtxp);
+        }
+
         ts_lua_destroy_http_intercept_ctx(ictx);
     }
+
+    if (mtxp)
+        TSMutexUnlock(mtxp);
 
     return 0;
 }
@@ -171,11 +194,11 @@ ts_lua_http_intercept_process_read(TSEvent event, ts_lua_http_intercept_ctx *ict
 {
     int64_t avail = TSIOBufferReaderAvail(ictx->input.reader);
     TSIOBufferReaderConsume(ictx->input.reader, avail);
-    
+
     switch (event) {
+
         case TS_EVENT_VCONN_READ_READY:
-            TSVIOReenable(ictx->input.vio);
-            break;
+            TSVConnShutdown(ictx->net_vc, 1, 0);
 
         case TS_EVENT_VCONN_READ_COMPLETE:
         case TS_EVENT_VCONN_EOS:
