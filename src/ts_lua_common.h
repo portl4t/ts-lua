@@ -63,6 +63,7 @@ typedef struct {
 
     ts_lua_main_ctx   *mctx;
 
+    int         intercept_type;
     int         ref;
 
 } ts_lua_http_ctx;
