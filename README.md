@@ -157,6 +157,54 @@ Synopsis
     end
 
 
+**test_intercept.lua**
+    require 'os'
+
+    function send_data()
+        local nt = os.time()..' Zheng.\n'
+        local resp =  'HTTP/1.1 200 OK\r\n' ..
+            'Server: ATS/3.2.0\r\n' ..
+            'Content-Type: text/plain\r\n' ..
+            'Content-Length: ' .. string.len(nt) .. '\r\n' ..
+            'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
+            'Connection: keep-alive\r\n' ..
+            'Cache-Control: max-age=7200\r\n' ..
+            'Accept-Ranges: bytes\r\n\r\n' ..
+            nt
+
+        ts.sleep(1)
+        return resp
+    end
+
+    function do_remap()
+        ts.http.intercept(send_data)
+        return 0
+    end
+
+
+**test_server_intercept.lua**
+    require 'os'
+
+    function send_data()
+        local nt = os.time()..'\n'
+        local resp =  'HTTP/1.1 200 OK\r\n' ..
+            'Server: ATS/3.2.0\r\n' ..
+            'Content-Type: text/plain\r\n' ..
+            'Content-Length: ' .. string.len(nt) .. '\r\n' ..
+            'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
+            'Connection: keep-alive\r\n' ..
+            'Cache-Control: max-age=30\r\n' ..
+            'Accept-Ranges: bytes\r\n\r\n' ..
+            nt
+        return resp
+    end
+
+    function do_remap()
+        ts.http.server_intercept(send_data)
+        return 0
+    end
+
+
 Description
 ======
 This module embeds Lua, via the standard Lua 5.1 interpreter, into Apache Traffic Server. This module acts as remap plugin of Traffic Server, so we should realize **'do_remap'** function in each lua script. We can write this in remap.config:
@@ -487,7 +535,6 @@ TODO
 =======
 Short Term
 ------
-* ts.http.intercept
 * non-blocking I/O operation
 * ts.fetch
 
