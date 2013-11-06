@@ -1,4 +1,6 @@
 
+require 'os'
+
 function send_data()
     local nt = os.time()..' Zheng.\n'
 
