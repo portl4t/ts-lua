@@ -158,6 +158,7 @@ Synopsis
 
 
 **test_intercept.lua**
+
     require 'os'
 
     function send_data()
@@ -183,6 +184,7 @@ Synopsis
 
 
 **test_server_intercept.lua**
+
     require 'os'
 
     function send_data()
