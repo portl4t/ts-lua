@@ -5,7 +5,7 @@ INC_PATH = -Imodules
 LIB_PATH = -L/usr/local/lib
 
 SHARED_OBJS = ts_lua.lo  ts_lua_client_request.lo  ts_lua_client_response.lo ts_lua_server_request.lo ts_lua_server_response.lo \
-	      ts_lua_cached_response.lo ts_lua_util.lo ts_lua_atomic.lo \
+	      ts_lua_cached_response.lo ts_lua_util.lo ts_lua_atomic.lo ts_lua_remap.lo \
 	      ts_lua_hook.lo ts_lua_context.lo ts_lua_misc.lo ts_lua_http.lo ts_lua_transform.lo ts_lua_log.lo \
 	      ts_lua_http_intercept.lo
 
