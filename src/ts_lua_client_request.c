@@ -221,7 +221,7 @@ ts_lua_inject_client_request_uri_api(lua_State *L)
 static int
 ts_lua_client_request_get_url(lua_State *L)
 {
-    const char  *url;
+    char        *url;
     int         url_len;
 
     ts_lua_http_ctx  *http_ctx;
@@ -231,6 +231,8 @@ ts_lua_client_request_get_url(lua_State *L)
     url = TSUrlStringGet(http_ctx->client_request_bufp, http_ctx->client_request_url, &url_len);
 
     lua_pushlstring(L, url, url_len);
+
+    TSfree(url);
 
     return 1;
 }
