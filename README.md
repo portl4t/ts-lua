@@ -226,6 +226,18 @@ Introduction
 The API is exposed to Lua in the form of one standard packages ts. This package is in the default global scope and is always available within lua script.
 
 
+Remap status constants
+------
+**context**: do_remap
+
+    TS_LUA_REMAP_NO_REMAP (0)
+    TS_LUA_REMAP_DID_REMAP (1)
+    TS_LUA_REMAP_NO_REMAP_STOP (2)
+    TS_LUA_REMAP_DID_REMAP_STOP (3)
+    TS_LUA_REMAP_ERROR (-1)
+    
+These constants are usually used as return value of do_remap.
+
 
 ts.now
 ------
