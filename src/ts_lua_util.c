@@ -169,6 +169,23 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
     return 0;
 }
 
+int
+ts_lua_del_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
+{
+    int     i;  
+
+    for (i = 0; i < n; i++) {
+        TSMutexLock(arr[i].mutexp);
+
+        lua_pushlightuserdata(arr[i].lua, conf);
+        lua_pushnil(arr[i].lua);
+        lua_rawset(arr[i].lua, LUA_REGISTRYINDEX);
+
+        TSMutexUnlock(arr[i].mutexp);
+    }   
+
+    return 0;
+}
 
 static
 void ts_lua_init_registry(lua_State *L)

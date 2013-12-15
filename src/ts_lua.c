@@ -24,8 +24,9 @@
 #include "ts_lua_util.h"
 
 #define TS_LUA_MAX_STATE_COUNT                  2048
+#define TS_LUA_ENV_KEY_NAME                     "__ts_lua_env"
 
-static volatile int32_t ts_lua_http_next_id = 0;
+static uint64_t ts_lua_http_next_id = 0;
 
 ts_lua_main_ctx         *ts_lua_main_ctx_array;
 
@@ -33,10 +34,22 @@ ts_lua_main_ctx         *ts_lua_main_ctx_array;
 TSReturnCode
 TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 {
+    char    buf[32];
+    char    *env_val;
+    char    *ptr;
     int     ret;
 
     if (!api_info || api_info->size < sizeof(TSRemapInterface))
         return TS_ERROR;
+
+    env_val = getenv(TS_LUA_ENV_KEY_NAME);
+
+    if (env_val) {
+        sscanf(env_val, "%p", &ptr);
+        ts_lua_main_ctx_array = (ts_lua_main_ctx*)ptr;
+        TSDebug(TS_LUA_DEBUG_TAG, "[%s] ts_lua_main_ctx_array : %p can be reused.\n", __FUNCTION__, ts_lua_main_ctx_array);
+        return TS_SUCCESS;
+    }
 
     ts_lua_main_ctx_array = TSmalloc(sizeof(ts_lua_main_ctx) * TS_LUA_MAX_STATE_COUNT);
     memset(ts_lua_main_ctx_array, 0, sizeof(ts_lua_main_ctx) * TS_LUA_MAX_STATE_COUNT);
@@ -48,6 +61,11 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
         TSfree(ts_lua_main_ctx_array);
         return TS_ERROR;
     }
+
+    sprintf(buf, "%p", ts_lua_main_ctx_array);
+    setenv(TS_LUA_ENV_KEY_NAME, buf, 1);
+
+    TSDebug(TS_LUA_DEBUG_TAG, "[%s] ts_lua_main_ctx_array : %p is in env now.\n", __FUNCTION__, ts_lua_main_ctx_array);
 
     return TS_SUCCESS;
 }
@@ -88,6 +106,7 @@ TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_s
 void
 TSRemapDeleteInstance(void* ih)
 {
+    ts_lua_del_module((ts_lua_instance_conf*)ih, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
     TSfree(ih);
     return;
 }
@@ -96,7 +115,7 @@ TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
     int                 ret;
-    int64_t             req_id;
+    uint64_t            req_id;
 
     TSCont              contp;
     lua_State           *l;
@@ -107,7 +126,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     ts_lua_instance_conf     *instance_conf;
 
     instance_conf = (ts_lua_instance_conf*)ih;
-    req_id = (int64_t) ts_lua_atomic_increment((&ts_lua_http_next_id), 1);
+    req_id = __sync_fetch_and_add(&ts_lua_http_next_id, 1);
 
     main_ctx = &ts_lua_main_ctx_array[req_id%TS_LUA_MAX_STATE_COUNT];
 
