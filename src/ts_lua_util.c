@@ -52,7 +52,7 @@ ts_lua_create_vm(ts_lua_main_ctx *arr, int n)
 
         lua_pushvalue(L, LUA_GLOBALSINDEX);
 
-        arr[i].gref = luaL_ref(L, LUA_REGISTRYINDEX);
+        arr[i].gref = luaL_ref(L, LUA_REGISTRYINDEX);       /* L[REG][gref] = L[GLOBAL] */
         arr[i].lua = L;
         arr[i].mutexp = TSMutexCreate();
     }
@@ -105,16 +105,18 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
 
     for (i = 0; i < n; i++) {
 
+        TSMutexLock(arr[i].mutexp);
+
         L = arr[i].lua;
 
-        lua_newtable(L);                                    // create this module's global table
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "_G");
-        lua_newtable(L);
-        lua_rawgeti(L, LUA_REGISTRYINDEX, arr[i].gref);
-        lua_setfield(L, -2, "__index");
-        lua_setmetatable(L, -2);
-        lua_replace(L, LUA_GLOBALSINDEX);
+        lua_newtable(L);                                    /* new TB1 */
+        lua_pushvalue(L, -1);                               /* new TB2 */
+        lua_setfield(L, -2, "_G");                          /* TB1[_G] = TB2 empty table */
+        lua_newtable(L);                                    /* new TB3 */
+        lua_rawgeti(L, LUA_REGISTRYINDEX, arr[i].gref);     /* push L[GLOBAL] */
+        lua_setfield(L, -2, "__index");                     /* TB3[__index] = L[GLOBAL] which has ts.xxx api */
+        lua_setmetatable(L, -2);                            /* TB1[META]  = TB3 */
+        lua_replace(L, LUA_GLOBALSINDEX);                   /* L[GLOBAL] = TB1 */
 
         if (luaL_loadfile(L, conf->script)) {
             fprintf(stderr, "[%s] luaL_loadfile %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
@@ -160,12 +162,13 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
 
         lua_pushlightuserdata(L, conf);
         lua_pushvalue(L, LUA_GLOBALSINDEX);
-        lua_rawset(L, LUA_REGISTRYINDEX);
+        lua_rawset(L, LUA_REGISTRYINDEX);               /* L[REG][conf] = L[GLOBAL] */
 
         lua_newtable(L);
-        lua_replace(L, LUA_GLOBALSINDEX);               // set empty table to global
-    }
+        lua_replace(L, LUA_GLOBALSINDEX);               /* L[GLOBAL] = EMPTY */
 
+        TSMutexUnlock(arr[i].mutexp);
+    }
 
     return 0;
 }
@@ -173,17 +176,41 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
 int
 ts_lua_del_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
 {
-    int     i;  
+    int         i;  
+    lua_State   *L;
 
     for (i = 0; i < n; i++) {
+
         TSMutexLock(arr[i].mutexp);
 
-        lua_pushlightuserdata(arr[i].lua, conf);
-        lua_pushnil(arr[i].lua);
-        lua_rawset(arr[i].lua, LUA_REGISTRYINDEX);
+        L = arr[i].lua;
+
+        /* call "__clean__", to clean resources */
+        lua_pushlightuserdata(L, conf);
+        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_replace(L, LUA_GLOBALSINDEX);               /* L[GLOBAL] = L[REG][conf] */
+
+        lua_getglobal(L, "__clean__");                  /* get __clean__ function */
+
+        if (lua_type(L, -1) == LUA_TFUNCTION) {
+
+            if (lua_pcall(L, 0, 0, 0)) {
+                fprintf(stderr, "[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
+            }
+
+        } else {
+            lua_pop(L, 1);          /* pop nil */
+        }
+
+        lua_pushlightuserdata(L, conf);
+        lua_pushnil(L);
+        lua_rawset(L, LUA_REGISTRYINDEX);               /* L[REG][conf] = nil */
+
+        lua_newtable(L);
+        lua_replace(L, LUA_GLOBALSINDEX);               /* L[GLOBAL] = EMPTY  */
 
         TSMutexUnlock(arr[i].mutexp);
-    }   
+    }
 
     return 0;
 }
