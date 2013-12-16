@@ -28,6 +28,7 @@
 #include "ts_lua_hook.h"
 #include "ts_lua_http.h"
 #include "ts_lua_misc.h"
+#include "ts_lua_regex.h"
 #include "ts_lua_log.h"
 
 static lua_State * ts_lua_new_state();
@@ -218,6 +219,7 @@ ts_lua_inject_ts_api(lua_State *L)
 
     ts_lua_inject_http_api(L);
     ts_lua_inject_misc_api(L);
+    ts_lua_inject_regex_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");

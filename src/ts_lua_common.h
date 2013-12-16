@@ -42,6 +42,7 @@
 
 #define TS_LUA_MAX_SCRIPT_FNAME_LENGTH      1024
 #define TS_LUA_MAX_URL_LENGTH               2048
+#define TS_LUA_MAX_OVEC_SIZE                (3 * 32)
 
 #define TS_LUA_DEBUG_TAG                    "ts_lua"
 
