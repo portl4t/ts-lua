@@ -19,13 +19,12 @@ local st = 'UCWEB|Opera Mobi|MAUI|BlackBerry|Symbian|SEMC|Palm|webOS|MEIZU|NetFr
 local ua_re = nil
 
 function __init__(argtb)
+--    ua_re = ts.re.compile(st, 'ia')
     ua_re = ts.re.compile(st)
-    print(ua_re)
 end
 
 function __clean__()
     if ua_re ~= nil then
-        print(ua_re)
         ts.re.free(ua_re)
     end
 end
