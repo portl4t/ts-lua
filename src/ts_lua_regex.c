@@ -45,19 +45,74 @@ ts_lua_inject_regex_api(lua_State *L)
 static int
 ts_lua_regex_compile(lua_State *L)
 {
+    int         n, flags, i;
     pcre        *re;
     const char  *pattern;
+    const char  *opt;
+    char        c;
     const char  *err;
     int         erroffset;
-    size_t      len;
+    size_t      pattern_len;
+    size_t      opt_len;
 
-    pattern = luaL_checklstring(L, 1, &len);
+    n = lua_gettop(L);
 
-    if (len == 0) {
+    pattern = luaL_checklstring(L, 1, &pattern_len);
+
+    if (pattern_len == 0) {
         lua_pushnil(L);
 
     } else {
-        re = pcre_compile(pattern, 0, &err, &erroffset, NULL);
+        flags = 0;
+
+        if (n >= 2) {
+            opt = luaL_checklstring(L, 2, &opt_len);
+
+            if (opt && opt_len > 0) {
+                i = 0;
+
+                while  (i < opt_len) {
+                    c = *(opt + i);
+
+                    switch (c) {
+                        case 'i':
+                            flags |= PCRE_CASELESS;
+                            break;
+
+                        case 'a':
+                            flags |= PCRE_ANCHORED;
+                            break;
+
+                        case 'm':
+                            flags |= PCRE_MULTILINE;
+                            break;
+
+                        case 'u':
+                            flags |= PCRE_UNGREEDY;
+                            break;
+
+                        case 's':
+                            flags |= PCRE_DOTALL;
+                            break;
+
+                        case 'x':
+                            flags |= PCRE_EXTENDED;
+                            break;
+
+                        case 'd':
+                            flags |= PCRE_DOLLAR_ENDONLY;
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    i++;
+                }
+            }
+        }
+
+        re = pcre_compile(pattern, flags, &err, &erroffset, NULL);
 
         if (re == NULL) {
             fprintf(stderr, "PCRE compilation failed at offset %d: %s/n", erroffset, err);
