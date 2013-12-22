@@ -545,6 +545,60 @@ Here is an example:
     end
 
 
+ts.re.compile
+------
+**syntax**: *regex = ts.re.compile(pattern, options?)*
+
+**context**: *global*
+
+**description**: Compiles a regular expression into an internal form
+
+Specify "options" to control how the match operation will be performed. The following option characters are supported:
+
+    a             anchored mode
+    
+    i             Do caseless matching
+    
+    m             multi-line mode (^ and $ match newlines within data)
+    
+    u             Invert greediness of quantifiers
+    
+    s             . matches anything including NL
+    
+    x             Ignore white space and # comments
+    
+    d             $ not to match newline at end
+
+
+ts.re.match
+------
+**syntax**: *captures = ts.re.match(regex, subject)*
+
+**context**: *global*
+
+**description**: Matches a compiled regular expression "regex" against a given "subject" string. 
+When a match is found, a Lua table captures is returrend. If no match is found, nil will be returned.
+
+Here is an example:
+
+    local regex = ts.re.compile("<(.*)>(.*)<(.*)>", "i")
+    local captures = ts.re.match(regex, "<name>ZhanNaiZhen</name>")
+    ts.re.free(regex)
+    if captures then
+        -- captures[0] == "name"
+        -- captures[1] == "ZhanNaiZhen"
+        -- captures[2] == "/name"
+    end
+
+ts.re.free
+------
+**syntax**: *ts.re.free(regex)*
+
+**context**: *global*
+
+**description**: free the resources "regex" created by ts.re.compile
+
+
 TODO
 =======
 Short Term
@@ -554,5 +608,5 @@ Short Term
 
 Long Term
 ------
-* ts.regex
+* ts.socket
 
