@@ -576,8 +576,8 @@ ts.re.match
 
 **context**: *global*
 
-**description**: Matches a compiled regular expression "regex" against a given "subject" string. 
-When a match is found, a Lua table captures is returrend. If no match is found, nil will be returned.
+**description**: Matches a compiled regular expression `regex` against a given `subject` string. 
+When a match is found, a Lua table `captures` is returrend. If no match is found, `nil` will be returned.
 
 Here is an example:
 
@@ -596,7 +596,7 @@ ts.re.free
 
 **context**: *global*
 
-**description**: free the resources "regex" created by ts.re.compile
+**description**: free the resources `regex` created by ts.re.compile
 
 
 TODO
