@@ -41,6 +41,7 @@
 #define TS_LUA_FUNCTION_SEND_RESPONSE           "do_send_response"
 
 #define TS_LUA_MAX_SCRIPT_FNAME_LENGTH      1024
+#define TS_LUA_MAX_CONFIG_VARS_COUNT        256
 #define TS_LUA_MAX_URL_LENGTH               2048
 #define TS_LUA_MAX_OVEC_SIZE                (3 * 32)
 
@@ -49,6 +50,7 @@
 
 typedef struct {
     char    script[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
+    void    *conf_vars[TS_LUA_MAX_CONFIG_VARS_COUNT];
 } ts_lua_instance_conf;
 
 

@@ -89,6 +89,7 @@ TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_s
         return TS_ERROR;
     }
 
+    memset(conf, 0, sizeof(ts_lua_instance_conf));
     sprintf(conf->script, "%s", argv[2]);
 
     ret = ts_lua_add_module(conf, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT, argc-2, &argv[2]);
