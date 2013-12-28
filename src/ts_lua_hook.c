@@ -24,6 +24,7 @@
 
 typedef enum {
     TS_LUA_HOOK_DUMMY = 0,
+    TS_LUA_HOOK_POST_REMAP,
     TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE,
     TS_LUA_HOOK_SEND_REQUEST_HDR,
     TS_LUA_HOOK_READ_RESPONSE_HDR,
@@ -36,6 +37,7 @@ typedef enum {
 
 char * ts_lua_hook_id_string[] = {
     "TS_LUA_HOOK_DUMMY",
+    "TS_LUA_HOOK_POST_REMAP",
     "TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE",
     "TS_LUA_HOOK_SEND_REQUEST_HDR",
     "TS_LUA_HOOK_READ_RESPONSE_HDR",
@@ -89,6 +91,12 @@ ts_lua_add_hook(lua_State *L)
         return 0;
 
     switch (entry) {
+
+        case TS_LUA_HOOK_POST_REMAP:
+            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_POST_REMAP_HOOK, http_ctx->main_contp);
+            lua_pushvalue(L, 2);
+            lua_setglobal(L, TS_LUA_FUNCTION_POST_REMAP);
+            break;
 
         case TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE:
             TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_CACHE_LOOKUP_COMPLETE_HOOK, http_ctx->main_contp);

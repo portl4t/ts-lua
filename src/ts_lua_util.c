@@ -452,6 +452,7 @@ int
 ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
 {
     TSHttpTxn           txnp = (TSHttpTxn)edata;
+    int                 ret;
     lua_State           *l;
     ts_lua_http_ctx     *http_ctx;
     ts_lua_main_ctx     *main_ctx;
@@ -459,19 +460,37 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
     http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
     main_ctx = http_ctx->mctx;
 
+    ret = 0;
     l = http_ctx->lua;
 
     TSMutexLock(main_ctx->mutexp);
 
     switch (event) {
 
-        case TS_EVENT_HTTP_CACHE_LOOKUP_COMPLETE:
+        case TS_EVENT_HTTP_POST_REMAP:
 
-            lua_getglobal(l, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
+            lua_getglobal(l, TS_LUA_FUNCTION_POST_REMAP);
+
             if (lua_type(l, -1) == LUA_TFUNCTION) {
                 if (lua_pcall(l, 0, 1, 0)) {
                     fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
                 }
+
+                ret = lua_tointeger(l, -1);
+            }
+
+            break;
+
+        case TS_EVENT_HTTP_CACHE_LOOKUP_COMPLETE:
+
+            lua_getglobal(l, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
+
+            if (lua_type(l, -1) == LUA_TFUNCTION) {
+                if (lua_pcall(l, 0, 1, 0)) {
+                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
+                }
+
+                ret = lua_tointeger(l, -1);
             }
 
             break;
@@ -479,10 +498,13 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
         case TS_EVENT_HTTP_SEND_REQUEST_HDR:
 
             lua_getglobal(l, TS_LUA_FUNCTION_SEND_REQUEST);
+
             if (lua_type(l, -1) == LUA_TFUNCTION) {
                 if (lua_pcall(l, 0, 1, 0)) {
                     fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
                 }
+
+                ret = lua_tointeger(l, -1);
             }
 
             break;
@@ -490,10 +512,13 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
         case TS_EVENT_HTTP_READ_RESPONSE_HDR:
 
             lua_getglobal(l, TS_LUA_FUNCTION_READ_RESPONSE);
+
             if (lua_type(l, -1) == LUA_TFUNCTION) {
                 if (lua_pcall(l, 0, 1, 0)) {
                     fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
                 }
+
+                ret = lua_tointeger(l, -1);
             }
 
             break;
@@ -501,10 +526,13 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
         case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
 
             lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
+
             if (lua_type(l, -1) == LUA_TFUNCTION) {
                 if (lua_pcall(l, 0, 1, 0)) {
                     fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
                 }
+
+                ret = lua_tointeger(l, -1);
             }
 
             break;
@@ -519,7 +547,14 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
     }
 
     TSMutexUnlock(main_ctx->mutexp);
-    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+
+    if (ret) {
+        TSHttpTxnReenable(txnp, TS_EVENT_HTTP_ERROR);
+
+    } else {
+        TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+    }
+
     return 0;
 }
 
