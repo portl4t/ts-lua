@@ -19,13 +19,29 @@
 
 #include "ts_lua_util.h"
 
+#define TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx)     \
+do {        \
+    if (!http_ctx->server_response_hdrp) {           \
+        if (TSHttpTxnServerRespGet(http_ctx->txnp,   \
+                    &http_ctx->server_response_bufp, \
+                    &http_ctx->server_response_hdrp) != TS_SUCCESS) {    \
+            return 0;   \
+        }   \
+    }   \
+} while(0)
+
+
 static void ts_lua_inject_server_response_header_api(lua_State *L);
-static void ts_lua_inject_server_response_header_misc_api(lua_State *L);
+static void ts_lua_inject_server_response_misc_api(lua_State *L);
 
 static int ts_lua_server_response_header_get(lua_State *L);
 static int ts_lua_server_response_header_set(lua_State *L);
 
-static int ts_lua_server_response_header_get_status(lua_State *L);
+static int ts_lua_server_response_get_status(lua_State *L);
+static int ts_lua_server_response_set_status(lua_State *L);
+
+static int ts_lua_server_response_get_version(lua_State *L);
+static int ts_lua_server_response_set_version(lua_State *L);
 
 
 void
@@ -34,6 +50,7 @@ ts_lua_inject_server_response_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_server_response_header_api(L);
+    ts_lua_inject_server_response_misc_api(L);
 
     lua_setfield(L, -2, "server_response");
 }
@@ -43,8 +60,6 @@ static void
 ts_lua_inject_server_response_header_api(lua_State *L)
 {
     lua_newtable(L);         /* .header */
-
-    ts_lua_inject_server_response_header_misc_api(L);
 
     lua_createtable(L, 0, 2);       /* metatable for .header */
 
@@ -59,10 +74,17 @@ ts_lua_inject_server_response_header_api(lua_State *L)
 }
 
 static void
-ts_lua_inject_server_response_header_misc_api(lua_State *L)
+ts_lua_inject_server_response_misc_api(lua_State *L)
 {
-    lua_pushcfunction(L, ts_lua_server_response_header_get_status);
+    lua_pushcfunction(L, ts_lua_server_response_get_status);
     lua_setfield(L, -2, "get_status");
+    lua_pushcfunction(L, ts_lua_server_response_set_status);
+    lua_setfield(L, -2, "set_status");
+
+    lua_pushcfunction(L, ts_lua_server_response_get_version);
+    lua_setfield(L, -2, "get_version");
+    lua_pushcfunction(L, ts_lua_server_response_set_version);
+    lua_setfield(L, -2, "set_version");
 }
 
 static int
@@ -81,14 +103,7 @@ ts_lua_server_response_header_get(lua_State *L)
     /*  we skip the first argument that is the table */
     key = luaL_checklstring(L, 2, &key_len);
 
-    if (!http_ctx->server_response_hdrp) {
-        if (TSHttpTxnServerRespGet(http_ctx->txnp,
-                    &http_ctx->server_response_bufp, &http_ctx->server_response_hdrp) != TS_SUCCESS) {
-
-            lua_pushnil(L);
-            return 1;
-        }
-    }
+    TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx);
 
     if (key && key_len) {
 
@@ -135,12 +150,7 @@ ts_lua_server_response_header_set(lua_State *L)
         val = luaL_checklstring(L, 3, &val_len);
     }
 
-    if (!http_ctx->server_response_hdrp) {
-        if (TSHttpTxnServerRespGet(http_ctx->txnp,
-                    &http_ctx->server_response_bufp, &http_ctx->server_response_hdrp) != TS_SUCCESS) {
-            return 0;
-        }
-    }
+    TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx);
 
     field_loc = TSMimeHdrFieldFind(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, key, key_len);
 
@@ -169,26 +179,86 @@ ts_lua_server_response_header_set(lua_State *L)
 }
 
 static int
-ts_lua_server_response_header_get_status(lua_State *L)
+ts_lua_server_response_get_status(lua_State *L)
 {
     int              status;
     ts_lua_http_ctx  *http_ctx;
 
     http_ctx = ts_lua_get_http_ctx(L);
 
-    if (!http_ctx->server_response_hdrp) {
-        if (TSHttpTxnServerRespGet(http_ctx->txnp,
-                    &http_ctx->server_response_bufp, &http_ctx->server_response_hdrp) != TS_SUCCESS) {
-
-            lua_pushnil(L);
-            return 1;
-        }
-    }
+    TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx);
 
     status = TSHttpHdrStatusGet(http_ctx->server_response_bufp, http_ctx->server_response_hdrp);
 
     lua_pushinteger(L, status);
 
     return 1;
+}
+
+static int
+ts_lua_server_response_set_status(lua_State *L)
+{
+    int             status;
+    const char      *reason;
+    int             reason_len;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx);
+
+    status = luaL_checkint(L, 1);
+
+    reason = TSHttpHdrReasonLookup(status);
+    reason_len = strlen(reason);
+
+    TSHttpHdrStatusSet(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, status);
+    TSHttpHdrReasonSet(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, reason, reason_len);
+
+    return 0;
+}
+
+static int
+ts_lua_server_response_get_version(lua_State *L)
+{
+    int     version;
+    char    buf[32];
+    int     n;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx);
+
+    version = TSHttpHdrVersionGet(http_ctx->server_response_bufp, http_ctx->server_response_hdrp);
+
+    n = snprintf(buf, sizeof(buf)-1, "%d.%d", TS_HTTP_MAJOR(version), TS_HTTP_MINOR(version));
+    lua_pushlstring(L, buf, n);
+
+    return 1;
+}
+
+static int
+ts_lua_server_response_set_version(lua_State *L)
+{
+    const char  *version;
+    size_t      len;
+    int         major, minor;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    TS_LUA_CHECK_SERVER_RESPONSE_HDR(http_ctx);
+
+    version = luaL_checklstring(L, 1, &len);
+
+    sscanf(version, "%2u.%2u", &major, &minor);
+
+    TSHttpHdrVersionSet(http_ctx->server_response_bufp, http_ctx->server_response_hdrp, TS_HTTP_VERSION(major, minor));
+
+    return 0;
 }
 
