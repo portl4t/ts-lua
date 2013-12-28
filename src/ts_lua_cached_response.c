@@ -19,10 +19,27 @@
 
 #include "ts_lua_util.h"
 
-static void ts_lua_inject_cached_response_header_misc_api(lua_State *L);
+
+#define TS_LUA_CHECK_CACHED_RESPONSE_HDR(http_ctx)     \
+do {        \
+    if (!http_ctx->cached_response_hdrp) {           \
+        if (TSHttpTxnCachedRespGet(http_ctx->txnp,   \
+                    &http_ctx->cached_response_bufp, \
+                    &http_ctx->cached_response_hdrp) != TS_SUCCESS) {    \
+            return 0;   \
+        }   \
+    }   \
+} while(0)
+
+
+static void ts_lua_inject_cached_response_misc_api(lua_State *L);
 static void ts_lua_inject_cached_response_header_api(lua_State *L);
 
-static int ts_lua_cached_response_header_get_status(lua_State *L);
+static int ts_lua_cached_response_header_get(lua_State *L);
+static int ts_lua_cached_response_header_set(lua_State *L);
+
+static int ts_lua_cached_response_get_status(lua_State *L);
+static int ts_lua_cached_response_get_version(lua_State *L);
 
 
 void
@@ -31,6 +48,7 @@ ts_lua_inject_cached_response_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_cached_response_header_api(L);
+    ts_lua_inject_cached_response_misc_api(L);
 
     lua_setfield(L, -2, "cached_response");
 }
@@ -39,8 +57,7 @@ static void
 ts_lua_inject_cached_response_header_api(lua_State *L)
 {
     lua_newtable(L);                /*  .header */
-    ts_lua_inject_cached_response_header_misc_api(L);
-/*
+
     lua_createtable(L, 0, 2);
 
     lua_pushcfunction(L, ts_lua_cached_response_header_get);
@@ -49,40 +66,100 @@ ts_lua_inject_cached_response_header_api(lua_State *L)
     lua_setfield(L, -2, "__newindex");
 
     lua_setmetatable(L, -2);
-*/
+
     lua_setfield(L, -2, "header");
 
     return;
 }
 
 static void
-ts_lua_inject_cached_response_header_misc_api(lua_State *L)
+ts_lua_inject_cached_response_misc_api(lua_State *L)
 {
-    lua_pushcfunction(L, ts_lua_cached_response_header_get_status);
+    lua_pushcfunction(L, ts_lua_cached_response_get_status);
     lua_setfield(L, -2, "get_status");
+
+    lua_pushcfunction(L, ts_lua_cached_response_get_version);
+    lua_setfield(L, -2, "get_version");
 }
 
 static int
-ts_lua_cached_response_header_get_status(lua_State *L)
+ts_lua_cached_response_get_status(lua_State *L)
 {
     int              status;
     ts_lua_http_ctx  *http_ctx;
 
     http_ctx = ts_lua_get_http_ctx(L);
 
-    if (!http_ctx->cached_response_hdrp) {
-        if (TSHttpTxnCachedRespGet(http_ctx->txnp, &http_ctx->cached_response_bufp,
-                    &http_ctx->cached_response_hdrp) != TS_SUCCESS) {
-
-            lua_pushnil(L);
-            return 1;
-        }
-    }
+    TS_LUA_CHECK_CACHED_RESPONSE_HDR(http_ctx);
 
     status = TSHttpHdrStatusGet(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp);
 
     lua_pushinteger(L, status);
 
     return 1;
+}
+
+static int
+ts_lua_cached_response_get_version(lua_State *L)
+{
+    int     version;
+    char    buf[32];
+    int     n;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    TS_LUA_CHECK_CACHED_RESPONSE_HDR(http_ctx);
+
+    version = TSHttpHdrVersionGet(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp);
+
+    n = snprintf(buf, sizeof(buf)-1, "%d.%d", TS_HTTP_MAJOR(version), TS_HTTP_MINOR(version));
+    lua_pushlstring(L, buf, n);
+
+    return 1;
+}
+
+static int
+ts_lua_cached_response_header_get(lua_State *L)
+{
+    const char  *key;
+    const char  *val;
+    int         val_len;
+    size_t      key_len;
+
+    TSMLoc      field_loc;
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    /*   we skip the first argument that is the table */
+    key = luaL_checklstring(L, 2, &key_len);
+
+    TS_LUA_CHECK_CACHED_RESPONSE_HDR(http_ctx);
+
+    if (key && key_len) {
+        field_loc = TSMimeHdrFieldFind(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp, key, key_len);
+
+        if (field_loc) {
+            val = TSMimeHdrFieldValueStringGet(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp, field_loc, -1, &val_len);
+            lua_pushlstring(L, val, val_len);
+            TSHandleMLocRelease(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp, field_loc);
+
+        } else {
+            lua_pushnil(L);
+        }
+
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+static int
+ts_lua_cached_response_header_set(lua_State *L)
+{
+    return 0;
 }
 
