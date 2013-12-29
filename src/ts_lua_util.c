@@ -307,14 +307,19 @@ ts_lua_get_http_ctx(lua_State *L)
 ts_lua_http_ctx *
 ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 {
+    int                 i, size;
     ts_lua_http_ctx     *http_ctx;
     lua_State           *L;
     lua_State           *l;
 
     L = main_ctx->lua;
 
-    http_ctx = TSmalloc(sizeof(ts_lua_http_ctx));
-    memset(http_ctx, 0, sizeof(ts_lua_http_ctx));
+    size = TS_LUA_MEM_ALIGN(sizeof(ts_lua_http_ctx));
+    http_ctx = TSmalloc(size);
+
+    for (i = 0; i < TS_LUA_ALIGN_COUNT(size); i++) {
+        ((void**)http_ctx)[i] = 0;
+    }
 
     http_ctx->lua = lua_newthread(L);
     l = http_ctx->lua;
@@ -350,6 +355,10 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
     ts_lua_main_ctx   *main_ctx;
 
     main_ctx = http_ctx->mctx;
+
+    if (http_ctx->server_request_url) {
+        TSHandleMLocRelease(http_ctx->server_request_bufp, http_ctx->server_request_hdrp, http_ctx->server_request_url); 
+    }
 
     if (http_ctx->server_request_bufp) {
         TSHandleMLocRelease(http_ctx->server_request_bufp, TS_NULL_MLOC, http_ctx->server_request_hdrp);
@@ -396,13 +405,18 @@ ts_lua_get_http_intercept_ctx(lua_State *L)
 ts_lua_http_intercept_ctx *
 ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
 {
+    int                 i, size;
     lua_State           *L;
     ts_lua_http_intercept_ctx   *ictx;
 
     L = http_ctx->lua;
 
-    ictx = TSmalloc(sizeof(ts_lua_http_intercept_ctx));
-    memset(ictx, 0, sizeof(ts_lua_http_intercept_ctx));
+    size = TS_LUA_MEM_ALIGN(sizeof(ts_lua_http_intercept_ctx));
+    ictx = TSmalloc(size);
+
+    for (i = 0; i < TS_LUA_ALIGN_COUNT(size); i++) {
+        ((void**)ictx)[i] = 0;
+    }
 
     ictx->lua = lua_newthread(L);
 

@@ -46,6 +46,10 @@
 #define TS_LUA_MAX_URL_LENGTH               2048
 #define TS_LUA_MAX_OVEC_SIZE                (3 * 32)
 
+#define TS_LUA_MIN_ALIGN                    sizeof(void*)
+#define TS_LUA_MEM_ALIGN(size)              (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
+#define TS_LUA_ALIGN_COUNT(size)            (size / TS_LUA_MIN_ALIGN)
+
 #define TS_LUA_DEBUG_TAG                    "ts_lua"
 
 
@@ -73,6 +77,7 @@ typedef struct {
 
     TSMBuffer   server_request_bufp;
     TSMLoc      server_request_hdrp;
+    TSMLoc      server_request_url;
 
     TSMBuffer   server_response_bufp;
     TSMLoc      server_response_hdrp;
