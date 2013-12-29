@@ -545,6 +545,24 @@ Here is an example:
     end
 
 
+ts.server_request.XXX
+------
+
+ts.server_response.XXX
+------
+
+ts.client_response.XXX
+------
+
+ts.cached_response.XXX
+------
+
+ts.http.intercept
+------
+
+ts.http.server_intercept
+------
+
 ts.re.compile
 ------
 **syntax**: *regex = ts.re.compile(pattern, options?)*
