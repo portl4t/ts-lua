@@ -544,17 +544,66 @@ Here is an example:
         ts.client_request.header['Host'] = 'a.tbcdn.cn'
     end
 
-
-ts.server_request.XXX
+ts.client_request.get_url_host
+------
+ts.client_request.set_url_host
+------
+ts.client_request.get_url_port
+------
+ts.client_request.set_url_port
+------
+ts.client_request.set_url_scheme
+------
+ts.client_request.get_url_scheme
+------
+ts.client_request.get_version
+------
+ts.client_request.set_version
 ------
 
-ts.server_response.XXX
+
+ts.server_request.header.HEADER
+------
+ts.server_request.get_uri
+------
+ts.server_request.set_uri
+------
+ts.server_request.get_uri_args
+------
+ts.server_request.set_uri_args
 ------
 
-ts.client_response.XXX
+
+ts.server_response.header.HEADER
+------
+ts.server_response.set_status
+------
+ts.server_response.get_status
+------
+ts.server_response.set_version
+------
+ts.server_response.get_version
 ------
 
-ts.cached_response.XXX
+
+ts.client_response.header.HEADER
+------
+ts.client_response.get_status
+------
+ts.client_response.set_status
+------
+ts.client_response.get_version
+------
+ts.client_response.set_version
+------
+ts.client_response.set_error_resp
+------
+
+ts.cached_response.header.HEADER
+------
+ts.cached_response.get_status
+------
+ts.cached_response.get_version
 ------
 
 ts.http.intercept
