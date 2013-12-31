@@ -42,6 +42,7 @@ static void ts_lua_inject_http_transform_api(lua_State *L);
 static int ts_lua_http_set_retstatus(lua_State *L);
 static int ts_lua_http_set_retbody(lua_State *L);
 static int ts_lua_http_set_resp(lua_State *L);
+static int ts_lua_http_redirect(lua_State *L);
 
 static int ts_lua_http_get_cache_lookup_status(lua_State *L);
 static int ts_lua_http_set_cache_url(lua_State *L);
@@ -79,6 +80,9 @@ ts_lua_inject_http_retset_api(lua_State *L)
 
     lua_pushcfunction(L, ts_lua_http_set_resp);
     lua_setfield(L, -2, "set_resp");
+
+    lua_pushcfunction(L, ts_lua_http_redirect);
+    lua_setfield(L, -2, "redirect");
 }
 
 static void
@@ -166,6 +170,33 @@ ts_lua_http_set_resp(lua_State *L)
         body = luaL_checklstring(L, 2, &body_len);
         TSHttpTxnSetHttpRetBody(http_ctx->txnp, body, 1);
     }
+
+    return 0;
+}
+
+static int
+ts_lua_http_redirect(lua_State *L)
+{
+    const char          *start, *end;
+    const char          *url;
+    size_t              url_len;
+    ts_lua_http_ctx     *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    url = luaL_checklstring(L, 1, &url_len);
+
+    start = url;
+    end = url + url_len;
+
+    if (TSUrlParse(http_ctx->client_request_bufp, http_ctx->client_request_url,
+                &start, end) == TS_PARSE_ERROR) {
+
+        fprintf(stderr, "TSUrlParse failed, url: %s\n", url);
+        return 0;
+    }
+
+    http_ctx->rri->redirect = 1;
 
     return 0;
 }

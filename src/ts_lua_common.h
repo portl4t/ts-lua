@@ -89,6 +89,7 @@ typedef struct {
     TSMLoc      cached_response_hdrp;
 
     ts_lua_main_ctx   *mctx;
+    TSRemapRequestInfo *rri;
 
     int         intercept_type;
     int         ref;

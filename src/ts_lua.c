@@ -139,6 +139,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     http_ctx->client_request_bufp = rri->requestBufp;
     http_ctx->client_request_hdrp = rri->requestHdrp;
     http_ctx->client_request_url = rri->requestUrl;
+    http_ctx->rri = rri;
 
     l = http_ctx->lua;
 
