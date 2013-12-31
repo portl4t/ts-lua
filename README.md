@@ -442,6 +442,12 @@ Here is an example:
     
 This function is usually called after we hook TS_LUA_RESPONSE_TRANSFORM.
 
+ts.http.set_resp
+------
+
+ts.http.redirect
+------
+
 
 ts.client_request.client_addr.get_addr
 ------
