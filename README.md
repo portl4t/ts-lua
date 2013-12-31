@@ -612,6 +612,12 @@ ts.http.intercept
 ts.http.server_intercept
 ------
 
+ts.md5
+------
+
+ts.md5_bin
+------
+
 ts.re.compile
 ------
 **syntax**: *regex = ts.re.compile(pattern, options?)*
