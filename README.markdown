@@ -563,8 +563,10 @@ Here is an example:
     function do_remap()
         local url_host = ts.client_request.get_url_host()
         local url_port = ts.client_request.get_url_port()
+        local url_scheme = ts.client_request.get_url_scheme()
         print(url_host)
         print(url_port)
+        print(url_scheme)
     end
 
 Request like this:
@@ -579,6 +581,7 @@ yields the output:
 
     192.168.231.129
     8080
+    http
 
 
 ts.client_request.set_url_host
@@ -587,13 +590,14 @@ ts.client_request.set_url_host
 
 **context**: do_remap
 
-**description**: Set `host` field of the request url with `str`. This function is used to change the address of the origin server, and we should return TS_LUA_REMAP_DID_REMAP/TS_LUA_REMAP_DID_REMAP_STOP in do_remap.
+**description**: Set `host` field of the request url with `str`. This function is used to change the address of the origin server, and we should return TS_LUA_REMAP_DID_REMAP(_STOP) in do_remap.
 
 Here is an example:
 
     function do_remap()
         ts.client_request.set_url_host('192.168.231.130')
         ts.client_request.set_url_port('80')
+        ts.client_request.set_url_scheme('http')
         return TS_LUA_REMAP_DID_REMAP
     end
 
@@ -634,23 +638,97 @@ ts.client_request.set_url_port
 
 **context**: do_remap
 
-**description**: Set `port` field of the request url with `str`. This function is used to change the address of the origin server, and we should return TS_LUA_REMAP_DID_REMAP/TS_LUA_REMAP_DID_REMAP_STOP in do_remap.
+**description**: Set `port` field of the request url with `str`. This function is used to change the address of the origin server, and we should return TS_LUA_REMAP_DID_REMAP(_STOP) in do_remap.
 
 See the example of ts.client_request.set_url_host
 
 
-ts.client_request.set_url_scheme
-------
 ts.client_request.get_url_scheme
 ------
+**syntax**: *scheme = ts.client_request.get_url_scheme()*
+
+**context**: do_remap or later
+
+**description**: Return the `scheme` field of the request url.
+
+See the example of ts.client_request.get_url_host
+
+
+ts.client_request.set_url_scheme
+------
+**syntax**: *ts.client_request.set_url_scheme(str)*
+
+**context**: do_remap
+
+**description**: Set `scheme` field of the request url with `str`. This function is used to change the scheme of the server request, and we should return TS_LUA_REMAP_DID_REMAP(_STOP) in do_remap.
+
+See the example of ts.client_request.set_url_host
+
+
 ts.client_request.get_version
 ------
+**syntax**: *ver = ts.client_request.get_version()*
+
+**context**: do_remap or later
+
+**description**: Return the http version of the client request.
+
+Here is an example:
+
+    function do_remap():
+        print(ts.client_request.get_version())
+    end
+
+Request like this:
+
+    GET /liuyurou.txt HTTP/1.1
+    User-Agent: curl/7.19.7 (x86_64-redhat-linux-gnu) libcurl/7.19.7
+    Host: 192.168.231.129:8080
+    Accept: */*
+    ...
+
+yields the output:
+
+    1.1
+
+
 ts.client_request.set_version
 ------
+**syntax**: *ts.client_request.set_version(str)*
+
+**context**: do_remap or later
+
+**description**: Return the http version of the client request.
+
+Here is an example:
+
+    function do_remap():
+        ts.client_request.set_version('1.0')
+    end
 
 
 ts.server_request.header.HEADER
 ------
+**syntax**: *ts.server_request.header.HEADER = VALUE*
+
+**syntax**: *ts.server_request.header[HEADER] = VALUE*
+
+**syntax**: *VALUE = ts.server_request.header.HEADER*
+
+**context**: TS_LUA_HOOK_SEND_REQUEST_HDR hook point
+
+**description**: Set, add to, clear or get the server request's HEADER.
+
+Here is an example:
+
+    function do_remap()
+        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR,
+                    function()
+                        ts.server_request.header['song'] = 'YuZhouXiaoJie'
+                    end)
+    end
+
+
 ts.server_request.get_uri
 ------
 ts.server_request.set_uri
@@ -663,6 +741,26 @@ ts.server_request.set_uri_args
 
 ts.server_response.header.HEADER
 ------
+**syntax**: *ts.server_response.header.HEADER = VALUE*
+
+**syntax**: *ts.server_response.header[HEADER] = VALUE*
+
+**syntax**: *VALUE = ts.server_response.header.HEADER*
+
+**context**: TS_LUA_HOOK_READ_RESPONSE_HDR hook point
+
+**description**: Set, add to, clear or get the server response's HEADER.
+
+Here is an example:
+
+    function do_remap()
+        ts.hook(TS_LUA_HOOK_READ_RESPONSE_HDR,
+                    function()
+                        ts.server_response.header['Singer'] = 'SHE'
+                    end)
+    end
+
+
 ts.server_response.set_status
 ------
 ts.server_response.get_status
@@ -675,6 +773,26 @@ ts.server_response.get_version
 
 ts.client_response.header.HEADER
 ------
+**syntax**: *ts.client_response.header.HEADER = VALUE*
+
+**syntax**: *ts.client_response.header[HEADER] = VALUE*
+
+**syntax**: *VALUE = ts.client_response.header.HEADER*
+
+**context**: TS_LUA_HOOK_SEND_RESPONSE_HDR hook point
+
+**description**: Set, add to, clear or get the client response's HEADER.
+
+Here is an example:
+
+    function do_remap()
+        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR,
+                    function()
+                        ts.client_response.header['cop'] = 'Fast'
+                    end)
+    end
+
+
 ts.client_response.get_status
 ------
 ts.client_response.set_status
@@ -688,6 +806,24 @@ ts.client_response.set_error_resp
 
 ts.cached_response.header.HEADER
 ------
+**syntax**: *VALUE = ts.cached_response.header.HEADER*
+
+**context**: TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE hook point
+
+**description**: Get the cached response's HEADER.
+
+Here is an example:
+
+    function do_remap()
+        ts.hook(TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE,
+                    function()
+                        local cache_status = ts.http.get_cache_lookup_status()
+                        if cached_status == TS_LUA_CACHE_LOOKUP_HIT_FRESH:
+                            print(ts.cached_response.header['Content-Type'])
+                    end)
+    end
+
+
 ts.cached_response.get_status
 ------
 ts.cached_response.get_version
