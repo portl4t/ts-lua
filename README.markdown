@@ -620,9 +620,35 @@ ts.http.server_intercept
 
 ts.md5
 ------
+**syntax**: *digest = ts.md5(str)*
+
+**context**: global
+
+**description**: Returns the hexadecimal representation of the MD5 digest of the `str` argument.
+
+Here is an example:
+
+    function do_remap()
+        uri = ts.client_request.get_uri()
+        print(ts.md5(uri))
+    end
+
 
 ts.md5_bin
 ------
+**syntax**: *digest = ts.md5_bin(str)*
+
+**context**: global
+
+**description**: Returns the binary form of the MD5 digest of the `str` argument.
+
+Here is an example:
+
+    function do_remap()
+        uri = ts.client_request.get_uri()
+        print(ts.md5_bin(uri))
+    end
+
 
 ts.re.compile
 ------
