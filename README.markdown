@@ -570,7 +570,7 @@ Here is an example:
 Request like this:
 
     GET /liuyurou.txt HTTP/1.1
-    User-Agent: curl/7.19.7 (x86_64-redhat-linux-gnu) libcurl/7.19.7 NSS/3.14.0.0 zlib/1.2.3 libidn/1.18 libssh2/1.4.2
+    User-Agent: curl/7.19.7 (x86_64-redhat-linux-gnu) libcurl/7.19.7
     Host: 192.168.231.129:8080
     Accept: */*
     ...
@@ -583,6 +583,40 @@ yields the output:
 
 ts.client_request.set_url_host
 ------
+**syntax**: *ts.client_request.set_url_host(str)*
+
+**context**: do_remap
+
+**description**: Set `host` field of the request url with `str`. This function is used to change the address of the origin server, and we should return TS_LUA_REMAP_DID_REMAP/TS_LUA_REMAP_DID_REMAP_STOP in do_remap.
+
+Here is an example:
+
+    function do_remap()
+        ts.client_request.set_url_host('192.168.231.130')
+        ts.client_request.set_url_port('80')
+        return TS_LUA_REMAP_DID_REMAP
+    end
+
+remap like this:
+
+    map http://192.168.231.129:8080/ http://192.168.231.129:9999/
+
+client request like this:
+
+    GET /liuyurou.txt HTTP/1.1
+    User-Agent: curl/7.19.7 (x86_64-redhat-linux-gnu) libcurl/7.19.7
+    Host: 192.168.231.129:8080
+    Accept: */*
+    ...
+
+server request will connect to 192.168.231.130:80, header like this:
+
+    GET /liuyurou.txt HTTP/1.1
+    User-Agent: curl/7.19.7 (x86_64-redhat-linux-gnu) libcurl/7.19.7
+    Host: 192.168.231.129:8080
+    Accept: */*
+    ...
+
 ts.client_request.get_url_port
 ------
 **syntax**: *port = ts.client_request.get_url_port()*
@@ -596,6 +630,15 @@ See the example of ts.client_request.get_url_host
 
 ts.client_request.set_url_port
 ------
+**syntax**: *ts.client_request.set_url_port(str)*
+
+**context**: do_remap
+
+**description**: Set `port` field of the request url with `str`. This function is used to change the address of the origin server, and we should return TS_LUA_REMAP_DID_REMAP/TS_LUA_REMAP_DID_REMAP_STOP in do_remap.
+
+See the example of ts.client_request.set_url_host
+
+
 ts.client_request.set_url_scheme
 ------
 ts.client_request.get_url_scheme
