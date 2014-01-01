@@ -552,10 +552,48 @@ Here is an example:
 
 ts.client_request.get_url_host
 ------
+**syntax**: *host = ts.client_request.get_url_host()*
+
+**context**: do_remap or later
+
+**description**: Return the `host` field of the request url.
+
+Here is an example:
+
+    function do_remap()
+        local url_host = ts.client_request.get_url_host()
+        local url_port = ts.client_request.get_url_port()
+        print(url_host)
+        print(url_port)
+    end
+
+Request like this:
+
+    GET /liuyurou.txt HTTP/1.1
+    User-Agent: curl/7.19.7 (x86_64-redhat-linux-gnu) libcurl/7.19.7 NSS/3.14.0.0 zlib/1.2.3 libidn/1.18 libssh2/1.4.2
+    Host: 192.168.231.129:8080
+    Accept: */*
+    ...
+
+yields the output:
+
+    192.168.231.129
+    8080
+
+
 ts.client_request.set_url_host
 ------
 ts.client_request.get_url_port
 ------
+**syntax**: *port = ts.client_request.get_url_port()*
+
+**context**: do_remap or later
+
+**description**: Return the `port` field of the request url.
+
+See the example of ts.client_request.get_url_host
+
+
 ts.client_request.set_url_port
 ------
 ts.client_request.set_url_scheme
