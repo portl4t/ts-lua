@@ -28,7 +28,7 @@
 
 static uint64_t ts_lua_http_next_id = 0;
 
-ts_lua_main_ctx         *ts_lua_main_ctx_array;
+static ts_lua_main_ctx *ts_lua_main_ctx_array = NULL;
 
 
 TSReturnCode
@@ -38,6 +38,9 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 
     if (!api_info || api_info->size < sizeof(TSRemapInterface))
         return TS_ERROR;
+
+    if (ts_lua_main_ctx_array != NULL)
+        return TS_SUCCESS;
 
     ts_lua_main_ctx_array = TSmalloc(sizeof(ts_lua_main_ctx) * TS_LUA_MAX_STATE_COUNT);
     memset(ts_lua_main_ctx_array, 0, sizeof(ts_lua_main_ctx) * TS_LUA_MAX_STATE_COUNT);

@@ -34,6 +34,8 @@ do {        \
 static int ts_lua_client_response_header_get(lua_State *L);
 static int ts_lua_client_response_header_set(lua_State *L);
 
+static int ts_lua_client_response_get_headers(lua_State *L);
+
 static int ts_lua_client_response_get_status(lua_State *L);
 static int ts_lua_client_response_set_status(lua_State *L);
 
@@ -43,6 +45,7 @@ static int ts_lua_client_response_get_version(lua_State *L);
 static int ts_lua_client_response_set_version(lua_State *L);
 
 static void ts_lua_inject_client_response_header_api(lua_State *L);
+static void ts_lua_inject_client_response_headers_api(lua_State *L);
 static void ts_lua_inject_client_response_misc_api(lua_State *L);
 
 
@@ -52,6 +55,7 @@ ts_lua_inject_client_response_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_client_response_header_api(L);
+    ts_lua_inject_client_response_headers_api(L);
     ts_lua_inject_client_response_misc_api(L);
 
     lua_setfield(L, -2, "client_response");
@@ -176,6 +180,52 @@ ts_lua_client_response_header_set(lua_State *L)
         TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
 
     return 0;
+}
+
+static void
+ts_lua_inject_client_response_headers_api(lua_State *L)
+{
+    lua_pushcfunction(L, ts_lua_client_response_get_headers);
+    lua_setfield(L, -2, "get_headers");
+}
+
+static int
+ts_lua_client_response_get_headers(lua_State *L)
+{
+    const char  *name;
+    const char  *value;
+    int         name_len;
+    int         value_len;
+    TSMLoc      field_loc;
+    TSMLoc      next_field_loc;
+
+    ts_lua_http_ctx  *http_ctx;
+
+    http_ctx = ts_lua_get_http_ctx(L);
+
+    TS_LUA_CHECK_CLIENT_RESPONSE_HDR(http_ctx);
+
+    lua_newtable(L);
+
+    field_loc = TSMimeHdrFieldGet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, 0);
+
+    while (field_loc) {
+
+        name = TSMimeHdrFieldNameGet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, &name_len);
+        if (name && name_len) {
+
+            value = TSMimeHdrFieldValueStringGet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, -1, &value_len);
+            lua_pushlstring(L, name, name_len);
+            lua_pushlstring(L, value, value_len);
+            lua_rawset(L, -3);
+        }
+
+        next_field_loc = TSMimeHdrFieldNext(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        field_loc = next_field_loc;
+    }
+
+    return 1;
 }
 
 static void
