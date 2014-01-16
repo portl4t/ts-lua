@@ -867,13 +867,24 @@ Here is an example:
     end
 
 
-ts.re.compile
+
+ts.re.match
 ------
-**syntax**: *regex = ts.re.compile(pattern, options?)*
+**syntax**: *captures = ts.re.match(subject, regex, options?)*
 
 **context**: *global*
 
-**description**: Compiles a regular expression into an internal form
+**description**: Matches a compiled regular expression `regex` against a given `subject` string. 
+When a match is found, a Lua table `captures` is returned. If no match is found, `nil` will be returned.
+
+Here is an example:
+
+    local captures = ts.re.match('<name>ZhanNaiZhen</name>', '<(.*)>(.*)<(.*)>')
+    if captures then
+        -- captures[0] == "name"
+        -- captures[1] == "ZhanNaiZhen"
+        -- captures[2] == "/name"
+    end
 
 Specify "options" to control how the match operation will be performed. The following option characters are supported:
 
@@ -892,33 +903,6 @@ Specify "options" to control how the match operation will be performed. The foll
     d             $ not to match newline at end
 
 
-ts.re.match
-------
-**syntax**: *captures = ts.re.match(regex, subject)*
-
-**context**: *global*
-
-**description**: Matches a compiled regular expression `regex` against a given `subject` string. 
-When a match is found, a Lua table `captures` is returrend. If no match is found, `nil` will be returned.
-
-Here is an example:
-
-    local regex = ts.re.compile("<(.*)>(.*)<(.*)>", "i")
-    local captures = ts.re.match(regex, "<name>ZhanNaiZhen</name>")
-    ts.re.free(regex)
-    if captures then
-        -- captures[0] == "name"
-        -- captures[1] == "ZhanNaiZhen"
-        -- captures[2] == "/name"
-    end
-
-ts.re.free
-------
-**syntax**: *ts.re.free(regex)*
-
-**context**: *global*
-
-**description**: free the resources `regex` created by ts.re.compile
 
 
 TODO
