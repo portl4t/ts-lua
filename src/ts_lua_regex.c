@@ -19,22 +19,16 @@
 
 #include <pcre.h>
 #include "ts_lua_util.h"
+#include "ts_lua_hash_table.h"
 
-static int ts_lua_regex_compile(lua_State *L);
-static int ts_lua_regex_free(lua_State *L);
 static int ts_lua_regex_match(lua_State *L);
 
+static int free_pcre_value(Tcl_HashTable *t, Tcl_HashEntry *entry);
 
 void
 ts_lua_inject_regex_api(lua_State *L)
 {
     lua_newtable(L);
-
-    lua_pushcfunction(L, ts_lua_regex_compile);
-    lua_setfield(L, -2, "compile");
-
-    lua_pushcfunction(L, ts_lua_regex_free);
-    lua_setfield(L, -2, "free");
 
     lua_pushcfunction(L, ts_lua_regex_match);
     lua_setfield(L, -2, "match");
@@ -42,121 +36,117 @@ ts_lua_inject_regex_api(lua_State *L)
     lua_setfield(L, -2, "re");
 }
 
-static int
-ts_lua_regex_compile(lua_State *L)
-{
-    int         n, flags, i;
-    pcre        *re;
-    const char  *pattern;
-    const char  *opt;
-    char        c;
-    const char  *err;
-    int         erroffset;
-    size_t      pattern_len;
-    size_t      opt_len;
-
-    n = lua_gettop(L);
-
-    pattern = luaL_checklstring(L, 1, &pattern_len);
-
-    if (pattern_len == 0) {
-        lua_pushnil(L);
-
-    } else {
-        flags = 0;
-
-        if (n >= 2) {
-            opt = luaL_checklstring(L, 2, &opt_len);
-
-            if (opt && opt_len > 0) {
-                i = 0;
-
-                while  (i < opt_len) {
-                    c = *(opt + i);
-
-                    switch (c) {
-                        case 'i':
-                            flags |= PCRE_CASELESS;
-                            break;
-
-                        case 'a':
-                            flags |= PCRE_ANCHORED;
-                            break;
-
-                        case 'm':
-                            flags |= PCRE_MULTILINE;
-                            break;
-
-                        case 'u':
-                            flags |= PCRE_UNGREEDY;
-                            break;
-
-                        case 's':
-                            flags |= PCRE_DOTALL;
-                            break;
-
-                        case 'x':
-                            flags |= PCRE_EXTENDED;
-                            break;
-
-                        case 'd':
-                            flags |= PCRE_DOLLAR_ENDONLY;
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                    i++;
-                }
-            }
-        }
-
-        re = pcre_compile(pattern, flags, &err, &erroffset, NULL);
-
-        if (re == NULL) {
-            fprintf(stderr, "PCRE compilation failed at offset %d: %s/n", erroffset, err);
-            lua_pushnil(L);
-
-        } else {
-            lua_pushnumber(L, (long)re);
-        }
-    }
-
-    return 1;
-}
-
-static int
-ts_lua_regex_free(lua_State *L)
-{
-    long    val;
-    pcre    *re;
-
-    val = luaL_checknumber(L, 1);
-
-    re = (pcre*)val;
-    pcre_free(re);
-
-    return 0;
-}
 
 static int
 ts_lua_regex_match(lua_State *L)
 {
-    int         rc, i;
+    int         rc, i, n, flags;
     const char  *src;
     const char  *sub;
-    size_t      len, sub_len;
+    const char  *pattern;
+    const char  *opt;
+    const char  *key;
+    size_t      src_len, sub_len, pattern_len, opt_len;
     pcre        *re;
-    long        val;
     int         ovector[TS_LUA_MAX_OVEC_SIZE];
+    char        tmp[1024];
+    void        *pcre_lookup;
+    char        c;
+    const char  *err;
+    int         erroffset;
+    int         isNew, created;
+    Tcl_HashEntry *hPtr;
+    ts_lua_http_ctx  *http_ctx;
+    ts_lua_instance_conf *conf;
 
-    val = luaL_checknumber(L, 1);
-    re = (pcre*)val;
+    http_ctx = ts_lua_get_http_ctx(L);
+    conf = http_ctx->instance_conf;
 
-    src = luaL_checklstring(L, 2, &len);
+    n = lua_gettop(L);
+    src = luaL_checklstring(L, 1, &src_len);
+    pattern = luaL_checklstring(L, 2, &pattern_len);
 
-    rc = pcre_exec(re, NULL, src, len, 0, 0, ovector, TS_LUA_MAX_OVEC_SIZE);
+    if (n == 3) {
+        opt = luaL_checklstring(L, 3, &opt_len);
+        snprintf(tmp, sizeof(tmp)-8, "%s%s", pattern, opt);
+        key = tmp;
+
+    } else {
+        opt = NULL;
+        key = pattern;
+    }
+
+    isNew = 0;
+    created = 0;
+
+    if (ts_lua_hash_table_lookup(&conf->regex_map.t, key, &pcre_lookup)) {
+        re = pcre_lookup;
+
+    } else {
+
+        i = flags = 0;
+
+        if (opt && opt_len > 0) {
+
+            while  (i < opt_len) {
+                c = *(opt + i);
+
+                switch (c) {
+                    case 'i':
+                        flags |= PCRE_CASELESS;
+                        break;
+
+                    case 'a':
+                        flags |= PCRE_ANCHORED;
+                        break;
+
+                    case 'm':
+                        flags |= PCRE_MULTILINE;
+                        break;
+
+                    case 'u':
+                        flags |= PCRE_UNGREEDY;
+                        break;
+
+                    case 's':
+                        flags |= PCRE_DOTALL;
+                        break;
+
+                    case 'x':
+                        flags |= PCRE_EXTENDED;
+                        break;
+
+                    case 'd':
+                        flags |= PCRE_DOLLAR_ENDONLY;
+                        break;
+
+                    default:
+                        break;
+                }
+
+                i++;
+            }
+        }
+
+        re = pcre_compile(pattern, flags, &err, &erroffset, NULL);
+        created = 1;
+
+        if (re == NULL) {
+            return luaL_error(L, "PCRE compilation failed at offset %d: %s/n", erroffset, err);
+
+        } else if (conf->regex_map.t.numEntries < TS_LUA_MAX_RESIDENT_PCRE) {
+
+            TSMutexLock(conf->regex_map.mutexp);
+            hPtr = Tcl_CreateHashEntry(&(conf->regex_map.t), key, &isNew);
+            if (isNew) {
+                Tcl_SetHashValue(hPtr, re);
+            }
+
+            TSMutexUnlock(conf->regex_map.mutexp);
+        }
+    }
+
+    rc = pcre_exec(re, NULL, src, src_len, 0, 0, ovector, TS_LUA_MAX_OVEC_SIZE);
 
     if (rc < 0) {
         lua_pushnil(L);
@@ -172,6 +162,40 @@ ts_lua_regex_match(lua_State *L)
         }
     }
 
+    if (created && !isNew) {
+        pcre_free(re);
+    }
+
     return 1;
+}
+
+int
+ts_lua_init_regex_map(ts_lua_hash_map *regex_map)
+{
+    Tcl_InitHashTable(&(regex_map->t), TCL_STRING_KEYS);
+    regex_map->mutexp = TSMutexCreate();
+    return 0;
+}
+
+int
+ts_lua_del_regex_map(ts_lua_hash_map *regex_map)
+{
+    ts_lua_hash_table_iterate(&(regex_map->t), free_pcre_value);
+    Tcl_DeleteHashTable(&(regex_map->t));
+    return 0;
+}
+
+static int
+free_pcre_value(Tcl_HashTable *t, Tcl_HashEntry *entry)
+{
+    ClientData  val;
+
+    val = ts_lua_hash_table_entry_value(t, entry);
+
+    if (val != NULL) {
+        pcre_free((pcre*)val);
+    }
+
+    return 0;
 }
 

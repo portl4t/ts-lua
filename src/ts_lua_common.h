@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tcl.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -45,6 +46,7 @@
 #define TS_LUA_MAX_CONFIG_VARS_COUNT        256
 #define TS_LUA_MAX_URL_LENGTH               2048
 #define TS_LUA_MAX_OVEC_SIZE                (3 * 32)
+#define TS_LUA_MAX_RESIDENT_PCRE            64
 
 #define TS_LUA_MIN_ALIGN                    sizeof(void*)
 #define TS_LUA_MEM_ALIGN(size)              (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
@@ -54,8 +56,18 @@
 
 
 typedef struct {
+    Tcl_HashTable   t;
+    TSMutex         mutexp;
+} ts_lua_hash_map;
+
+
+typedef struct {
+    char    *content;
     char    script[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
     void    *conf_vars[TS_LUA_MAX_CONFIG_VARS_COUNT];
+
+    ts_lua_hash_map regex_map;
+
 } ts_lua_instance_conf;
 
 
@@ -90,6 +102,8 @@ typedef struct {
 
     ts_lua_main_ctx   *mctx;
     TSRemapRequestInfo *rri;
+
+    ts_lua_instance_conf *instance_conf;
 
     int         intercept_type;
     int         ref;

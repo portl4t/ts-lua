@@ -120,7 +120,14 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
         lua_setmetatable(L, -2);                            /* TB1[META]  = TB3 */
         lua_replace(L, LUA_GLOBALSINDEX);                   /* L[GLOBAL] = TB1 */
 
-        if (luaL_loadfile(L, conf->script)) {
+        if (conf->content) {
+            if (luaL_loadstring(L, conf->content)) {
+                fprintf(stderr, "[%s] luaL_loadstring %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
+                lua_pop(L, 1);
+                return -1;
+            }
+
+        } else if (luaL_loadfile(L, conf->script)) {
             fprintf(stderr, "[%s] luaL_loadfile %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
             lua_pop(L, 1);
             return -1;
@@ -215,6 +222,20 @@ ts_lua_del_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n)
         TSMutexUnlock(arr[i].mutexp);
     }
 
+    return 0;
+}
+
+int
+ts_lua_init_instance(ts_lua_instance_conf *conf)
+{
+    ts_lua_init_regex_map(&conf->regex_map);
+    return 0;
+}
+
+int
+ts_lua_del_instance(ts_lua_instance_conf *conf)
+{
+    ts_lua_del_regex_map(&conf->regex_map);
     return 0;
 }
 
@@ -343,6 +364,7 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
     http_ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     http_ctx->mctx = main_ctx;
+    http_ctx->instance_conf = conf;
 
     ts_lua_set_http_ctx(http_ctx->lua, http_ctx);
     ts_lua_create_context_table(http_ctx->lua);

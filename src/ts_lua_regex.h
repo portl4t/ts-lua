@@ -24,5 +24,8 @@
 
 void ts_lua_inject_regex_api(lua_State *L);
 
+int ts_lua_init_regex_map(ts_lua_hash_map *regex_map);
+int ts_lua_del_regex_map(ts_lua_hash_map *regex_map);
+
 #endif
 

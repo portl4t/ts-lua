@@ -59,29 +59,45 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 TSReturnCode
 TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_size)
 {
-    int     ret = 0;
+    int     fn;
+    int     ret;
 
     if (argc < 3) {
-        fprintf(stderr, "[%s] lua script file required !!", __FUNCTION__);
+        fprintf(stderr, "[%s] lua script file required !!\n", __FUNCTION__);
         return TS_ERROR;
     }
 
-    if (strlen(argv[2]) >= TS_LUA_MAX_SCRIPT_FNAME_LENGTH - 16)
+    fn = 1;
+
+    if (argv[2][0] != '/') {
+        fn = 0;
+
+    } else if (strlen(argv[2]) >= TS_LUA_MAX_SCRIPT_FNAME_LENGTH - 16) {
         return TS_ERROR;
+    }
 
     ts_lua_instance_conf *conf = TSmalloc(sizeof(ts_lua_instance_conf));
+
     if (!conf) {
-        fprintf(stderr, "[%s] TSmalloc failed !!", __FUNCTION__);
+        fprintf(stderr, "[%s] TSmalloc failed !!\n", __FUNCTION__);
         return TS_ERROR;
     }
 
     memset(conf, 0, sizeof(ts_lua_instance_conf));
-    sprintf(conf->script, "%s", argv[2]);
+
+    if (fn) {
+        sprintf(conf->script, "%s", argv[2]);
+
+    } else {
+        conf->content = argv[2];
+    }
+
+    ts_lua_init_instance(conf);
 
     ret = ts_lua_add_module(conf, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT, argc-2, &argv[2]);
 
     if (ret != 0) {
-        fprintf(stderr, "[%s] ts_lua_add_module failed", __FUNCTION__);
+        fprintf(stderr, "[%s] ts_lua_add_module failed\n", __FUNCTION__);
         return TS_ERROR;
     }
 
@@ -94,6 +110,7 @@ void
 TSRemapDeleteInstance(void* ih)
 {
     ts_lua_del_module((ts_lua_instance_conf*)ih, ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
+    ts_lua_del_instance(ih);
     TSfree(ih);
     return;
 }

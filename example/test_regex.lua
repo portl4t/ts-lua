@@ -15,17 +15,10 @@
 --  limitations under the License.
 
 
-function send_response()
-    ts.client_response.header['K-K'] = ts.ctx['kk']
-    return 0
-end
-
 
 function do_remap()
-    local r = ts.re.compile('<(.*)>(.*)<(.*)>')
---    local r = ts.re.compile('Hello')
-    local ret = ts.re.match(r, '<nani>Hello World<sigoyi>')
-    ts.re.free(r)
+
+    local ret = ts.re.match('<nani>Hello World<sigoyi>', '<(.*)>(.*)<(.*)>')
 
     if ret
     then
@@ -34,8 +27,6 @@ function do_remap()
 --        print(ret[1])
 --        print(ret[2])
     end
-
-    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
 
     return 0
 end
