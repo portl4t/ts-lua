@@ -872,7 +872,7 @@ ts.re.match
 ------
 **syntax**: *captures = ts.re.match(subject, regex, options?)*
 
-**context**: *global*
+**context**: *do_remap or later*
 
 **description**: Matches a compiled regular expression `regex` against a given `subject` string. 
 When a match is found, a Lua table `captures` is returned. If no match is found, `nil` will be returned.
