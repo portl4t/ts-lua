@@ -397,7 +397,9 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
     }
 
     if (http_ctx->cached_response_bufp) {
+        TSMimeHdrDestroy(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp);
         TSHandleMLocRelease(http_ctx->cached_response_bufp, TS_NULL_MLOC, http_ctx->cached_response_hdrp);
+        TSMBufferDestroy(http_ctx->cached_response_bufp);
     }
 
     luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, http_ctx->ref);

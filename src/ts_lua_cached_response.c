@@ -20,14 +20,20 @@
 #include "ts_lua_util.h"
 
 
-#define TS_LUA_CHECK_CACHED_RESPONSE_HDR(http_ctx)     \
-do {        \
+#define TS_LUA_CHECK_CACHED_RESPONSE_HDR(http_ctx)   \
+do {                                                 \
+    TSMBuffer       bufp;                            \
+    TSMLoc          hdrp;                            \
     if (!http_ctx->cached_response_hdrp) {           \
         if (TSHttpTxnCachedRespGet(http_ctx->txnp,   \
-                    &http_ctx->cached_response_bufp, \
-                    &http_ctx->cached_response_hdrp) != TS_SUCCESS) {    \
-            return 0;   \
-        }   \
+                    &bufp,                           \
+                    &hdrp) != TS_SUCCESS) {          \
+            return 0;                                \
+        }                                            \
+        http_ctx->cached_response_bufp = TSMBufferCreate();                                         \
+        http_ctx->cached_response_hdrp = TSHttpHdrCreate(http_ctx->cached_response_bufp);           \
+        TSHttpHdrCopy(http_ctx->cached_response_bufp, http_ctx->cached_response_hdrp, bufp, hdrp);  \
+        TSHandleMLocRelease(bufp, TS_NULL_MLOC, hdrp);                                              \
     }   \
 } while(0)
 
