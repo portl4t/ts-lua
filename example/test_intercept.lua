@@ -23,7 +23,7 @@ function send_data()
     local resp =  'HTTP/1.1 200 OK\r\n' ..
         'Server: ATS/3.2.0\r\n' ..
         'Content-Type: text/plain\r\n' ..
-        'Content-Length: ' .. string.len(nt) .. '\r\n' ..
+--        'Content-Length: ' .. string.len(nt) .. '\r\n' ..
         'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
         'Connection: keep-alive\r\n' ..
         'Cache-Control: max-age=7200\r\n' ..
