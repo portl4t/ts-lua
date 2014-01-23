@@ -23,15 +23,25 @@ function send_data()
     local resp =  'HTTP/1.1 200 OK\r\n' ..
         'Server: ATS/3.2.0\r\n' ..
         'Content-Type: text/plain\r\n' ..
---        'Content-Length: ' .. string.len(nt) .. '\r\n' ..
         'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
         'Connection: keep-alive\r\n' ..
         'Cache-Control: max-age=7200\r\n' ..
         'Accept-Ranges: bytes\r\n\r\n' ..
         nt
 
-    ts.sleep(1)
-    return resp
+    ts.say(resp)
+    ts.flush()
+    ts.sleep(2)
+
+    for i=1, 3
+    do
+        local st = string.format('%d\n', i)
+        ts.say(st)
+        ts.flush()
+        ts.sleep(2)
+    end 
+
+    ts.say('~~finish~~\n')
 end
 
 
