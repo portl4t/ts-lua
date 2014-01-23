@@ -174,7 +174,9 @@ Synopsis
             nt
 
         ts.sleep(1)
-        return resp
+        ts.say(resp)
+        ts.sleep(1)
+        ts.say('~~ finish ~~\n')
     end
 
     function do_remap()
@@ -198,7 +200,8 @@ Synopsis
             'Cache-Control: max-age=30\r\n' ..
             'Accept-Ranges: bytes\r\n\r\n' ..
             nt
-        return resp
+
+        ts.say(resp)
     end
 
     function do_remap()
