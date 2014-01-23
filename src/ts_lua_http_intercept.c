@@ -152,6 +152,9 @@ ts_lua_http_intercept_process(ts_lua_http_ctx *http_ctx, TSVConn conn)
     // set up read.
     ts_lua_http_intercept_setup_read(ictx);
 
+    // set up write.
+    ts_lua_http_intercept_setup_write(ictx);
+
     // invoke function here
     if (http_ctx->intercept_type == TS_LUA_TYPE_HTTP_INTERCEPT) {
         lua_getglobal(l, TS_LUA_FUNCTION_HTTP_INTERCEPT);
@@ -225,8 +228,8 @@ static int
 ts_lua_http_intercept_run_coroutine(ts_lua_http_intercept_ctx *ictx)
 {
     int             ret;
-    const char      *res;
-    size_t          res_len;
+    int64_t         avail;
+    int64_t         done;
     lua_State       *L;
 
     L = ictx->lua;
@@ -236,10 +239,18 @@ ts_lua_http_intercept_run_coroutine(ts_lua_http_intercept_ctx *ictx)
     switch (ret) {
 
         case 0:             // finished
-            res = lua_tolstring(L, -1, &res_len);
-            ts_lua_http_intercept_setup_write(ictx);
-            TSIOBufferWrite(ictx->output.buffer, res, res_len);
-            TSVIONBytesSet(ictx->output.vio, res_len);
+            avail = TSIOBufferReaderAvail(ictx->output.reader);
+            done = TSVIONDoneGet(ictx->output.vio);
+            TSVIONBytesSet(ictx->output.vio, avail + done);
+            ictx->all_ready = 1;
+
+            if (avail) {
+                TSVIOReenable(ictx->output.vio);
+
+            } else {
+                ictx->send_complete = 1;
+            }
+
             break;
 
         case 1:             // yield
@@ -279,10 +290,22 @@ ts_lua_http_intercept_process_read(TSEvent event, ts_lua_http_intercept_ctx *ict
 static int
 ts_lua_http_intercept_process_write(TSEvent event, ts_lua_http_intercept_ctx *ictx)
 {
+    int64_t     done;
+
     switch (event) {
+
         case TS_EVENT_VCONN_WRITE_READY:
-            if (TSIOBufferReaderAvail(ictx->output.reader))
+
+            if (ictx->all_ready) {
                 TSVIOReenable(ictx->output.vio);
+
+            } else {
+                done = TSVIONDoneGet(ictx->output.vio);
+
+                if (ictx->to_flush > done)
+                    TSVIOReenable(ictx->output.vio);
+            }
+
             break;
 
         case TS_EVENT_VCONN_WRITE_COMPLETE:

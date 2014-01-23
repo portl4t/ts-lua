@@ -137,9 +137,11 @@ typedef struct {
     TSVConn             net_vc;
 
     ts_lua_http_ctx     *hctx;
+    int64_t             to_flush;
     int                 ref;
-    char                recv_complete;
-    char                send_complete;
+    int                 recv_complete:1;
+    int                 send_complete:1;
+    int                 all_ready:1;
 } ts_lua_http_intercept_ctx;
 
 #define TS_LUA_RELEASE_IO_HANDLE(ih) do {   \

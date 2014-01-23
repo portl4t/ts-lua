@@ -24,6 +24,8 @@ static int ts_lua_get_now_time(lua_State *L);
 static int ts_lua_debug(lua_State *L);
 static int ts_lua_error(lua_State *L);
 static int ts_lua_sleep(lua_State *L);
+static int ts_lua_say(lua_State *L);
+static int ts_lua_flush(lua_State *L);
 
 
 void
@@ -44,6 +46,14 @@ ts_lua_inject_misc_api(lua_State *L)
     /* ts.sleep(...) */
     lua_pushcfunction(L, ts_lua_sleep);
     lua_setfield(L, -2, "sleep");
+
+    /* ts.say(...) */
+    lua_pushcfunction(L, ts_lua_say);
+    lua_setfield(L, -2, "say");
+
+    /* ts.flush(...) */
+    lua_pushcfunction(L, ts_lua_flush);
+    lua_setfield(L, -2, "flush");
 }
 
 static int
@@ -87,5 +97,36 @@ ts_lua_sleep(lua_State *L)
 
     TSContSchedule(ictx->contp, sec*1000, TS_THREAD_POOL_DEFAULT);
     return lua_yield(L, 0);
+}
+
+static int
+ts_lua_say(lua_State *L)
+{
+    const char  *data;
+    size_t      len;
+
+    ts_lua_http_intercept_ctx *ictx;
+
+    ictx = ts_lua_get_http_intercept_ctx(L);
+
+    data = luaL_checklstring(L, 1, &len);
+
+    TSIOBufferWrite(ictx->output.buffer, data, len);
+    return 0;
+}
+
+static int
+ts_lua_flush(lua_State *L)
+{
+    ts_lua_http_intercept_ctx *ictx;
+
+    ictx = ts_lua_get_http_intercept_ctx(L);
+
+    ictx->to_flush = TSVIONDoneGet(ictx->output.vio) + TSIOBufferReaderAvail(ictx->output.reader);
+
+    if (TSIOBufferReaderAvail(ictx->output.reader))
+        TSVIOReenable(ictx->output.vio);
+
+    return 0;
 }
 
