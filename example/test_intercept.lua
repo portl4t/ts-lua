@@ -31,14 +31,14 @@ function send_data()
 
     ts.say(resp)
     ts.flush()
-    ts.sleep(2)
+    ts.sleep(1)
 
     for i=1, 3
     do
         local st = string.format('%d\n', i)
         ts.say(st)
         ts.flush()
-        ts.sleep(2)
+        ts.sleep(1)
     end 
 
     ts.say('~~finish~~\n')
