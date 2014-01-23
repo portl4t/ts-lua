@@ -257,7 +257,7 @@ ts_lua_http_server_resp_no_store(lua_State *L)
 
     http_ctx = ts_lua_get_http_ctx(L);
 
-    TSHttpTxnServerRespNoStore(http_ctx->txnp);
+//    TSHttpTxnServerRespNoStore(http_ctx->txnp);
 
     return 0;
 }
