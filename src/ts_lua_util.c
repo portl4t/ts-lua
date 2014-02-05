@@ -113,7 +113,7 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
 
         lua_newtable(L);                                    /* new TB1 */
         lua_pushvalue(L, -1);                               /* new TB2 */
-        lua_setfield(L, -2, "_G");                          /* TB1[_G] = TB2 empty table */
+        lua_setfield(L, -2, "_G");                          /* TB1[_G] = TB2 empty table, we can change _G to xx */
         lua_newtable(L);                                    /* new TB3 */
         lua_rawgeti(L, LUA_REGISTRYINDEX, arr[i].gref);     /* push L[GLOBAL] */
         lua_setfield(L, -2, "__index");                     /* TB3[__index] = L[GLOBAL] which has ts.xxx api */
