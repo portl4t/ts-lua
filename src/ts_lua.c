@@ -24,7 +24,6 @@
 #include "ts_lua_util.h"
 
 #define TS_LUA_MAX_STATE_COUNT                  1024
-#define TS_LUA_ENV_KEY_NAME                     "__ts_lua_env"
 
 static uint64_t ts_lua_http_next_id = 0;
 
