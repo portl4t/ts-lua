@@ -5,7 +5,7 @@ ts-lua - Embed the Power of Lua into TrafficServer.
 
 Status
 ======
-This module is being tested under our production environment.
+This module is under active development and is production ready.
 
 Version
 ======
