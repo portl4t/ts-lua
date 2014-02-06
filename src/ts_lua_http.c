@@ -46,8 +46,6 @@ static int ts_lua_http_redirect(lua_State *L);
 
 static int ts_lua_http_get_cache_lookup_status(lua_State *L);
 static int ts_lua_http_set_cache_url(lua_State *L);
-static int ts_lua_http_cache_lookup_skip(lua_State *L);
-static int ts_lua_http_server_resp_no_store(lua_State *L);
 
 static void ts_lua_inject_cache_lookup_result_variables(lua_State *L);
 
@@ -93,12 +91,6 @@ ts_lua_inject_http_cache_api(lua_State *L)
 
     lua_pushcfunction(L, ts_lua_http_set_cache_url);
     lua_setfield(L, -2, "set_cache_url");
-
-    lua_pushcfunction(L, ts_lua_http_cache_lookup_skip);
-    lua_setfield(L, -2, "cache_lookup_skip");
-
-    lua_pushcfunction(L, ts_lua_http_server_resp_no_store);
-    lua_setfield(L, -2, "server_resp_no_store");
 
     ts_lua_inject_cache_lookup_result_variables(L);
 }
@@ -234,30 +226,6 @@ ts_lua_http_set_cache_url(lua_State *L)
     if (url && url_len) {
         TSCacheUrlSet(http_ctx->txnp, url, url_len);
     }
-
-    return 0;
-}
-
-static int
-ts_lua_http_cache_lookup_skip(lua_State *L)
-{
-    ts_lua_http_ctx     *http_ctx;
-
-    http_ctx = ts_lua_get_http_ctx(L);
-
-    TSHttpTxnCacheLookupSkip(http_ctx->txnp);
-
-    return 0;
-}
-
-static int
-ts_lua_http_server_resp_no_store(lua_State *L)
-{
-    ts_lua_http_ctx     *http_ctx;
-
-    http_ctx = ts_lua_get_http_ctx(L);
-
-//    TSHttpTxnServerRespNoStore(http_ctx->txnp);
 
     return 0;
 }
