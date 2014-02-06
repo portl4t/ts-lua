@@ -35,8 +35,10 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
 {
     int     ret;
 
-    if (!api_info || api_info->size < sizeof(TSRemapInterface))
+    if (!api_info || api_info->size < sizeof(TSRemapInterface)) {
+        strncpy(errbuf, "[TSRemapInit] - Incorrect size of TSRemapInterface structure", errbuf_size - 1);
         return TS_ERROR;
+    }
 
     if (ts_lua_main_ctx_array != NULL)
         return TS_SUCCESS;
@@ -62,7 +64,7 @@ TSRemapNewInstance(int argc, char* argv[], void** ih, char* errbuf, int errbuf_s
     int     ret;
 
     if (argc < 3) {
-        fprintf(stderr, "[%s] lua script file required !!\n", __FUNCTION__);
+        strncpy(errbuf, "[TSRemapNewInstance] - lua script file or string is required !!", errbuf_size - 1);
         return TS_ERROR;
     }
 
