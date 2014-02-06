@@ -87,7 +87,6 @@ typedef enum {
 
 
 char * ts_lua_http_config_string[]  = {
-    "TS_LUA_CONFIG_NULL",
     "TS_LUA_CONFIG_URL_REMAP_PRISTINE_HOST_HDR",
     "TS_LUA_CONFIG_HTTP_CHUNKING_ENABLED",
     "TS_LUA_CONFIG_HTTP_NEGATIVE_CACHING_ENABLED",
@@ -191,7 +190,7 @@ ts_lua_inject_http_config_variables(lua_State *L)
 {
     int     i;
 
-    for (i = TS_LUA_CONFIG_NULL; i <= TS_LUA_CONFIG_LAST_ENTRY; i++) {
+    for (i = 0; i <= TS_LUA_CONFIG_LAST_ENTRY; i++) {
         lua_pushinteger(L, i);
         lua_setglobal(L, ts_lua_http_config_string[i]);
     }
