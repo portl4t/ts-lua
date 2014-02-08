@@ -20,7 +20,7 @@ require 'os'
 function send_data()
     local nt = os.time()..' Zheng.\n'
 
-    local resp =  'HTTP/1.1 200 OK\r\n' ..
+    local resp =  'HTTP/1.0 200 OK\r\n' ..
         'Server: ATS/3.2.0\r\n' ..
         'Content-Type: text/plain\r\n' ..
         'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
