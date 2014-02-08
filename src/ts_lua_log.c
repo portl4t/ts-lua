@@ -100,7 +100,7 @@ ts_lua_log_object_write(lua_State *L)
 
     text = luaL_checklstring(L, 1, &text_len);
     if(log) {
-        TSTextLogObjectWrite(log, (char*)text);
+        TSTextLogObjectWrite(log, (char*)text, NULL);
     } else {
         TSError("[%s] log is not exsited!",__FUNCTION__);
     }

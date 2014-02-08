@@ -72,7 +72,7 @@ ts_lua_debug(lua_State *L)
     const char      *msg;
 
     msg = luaL_checkstring(L, 1);
-    TSDebug(TS_LUA_DEBUG_TAG, msg);
+    TSDebug(TS_LUA_DEBUG_TAG, msg, NULL);
     return 0;
 }
 
@@ -82,7 +82,7 @@ ts_lua_error(lua_State *L)
     const char      *msg;
 
     msg = luaL_checkstring(L, 1);
-    TSError(msg);
+    TSError(msg, NULL);
     return 0;
 }
 
