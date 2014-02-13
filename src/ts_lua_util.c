@@ -31,6 +31,7 @@
 #include "ts_lua_regex.h"
 #include "ts_lua_log.h"
 #include "ts_lua_crypto.h"
+#include "ts_lua_mgmt.h"
 
 static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
@@ -269,6 +270,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_misc_api(L);
     ts_lua_inject_regex_api(L);
     ts_lua_inject_crypto_api(L);
+    ts_lua_inject_mgmt_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");
@@ -420,9 +422,9 @@ ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
 
     ictx->lua = lua_newthread(L);
 
-    ictx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    ictx->ref = luaL_ref(http_ctx->mctx->lua, LUA_REGISTRYINDEX);
 
-    ictx->hctx = http_ctx;
+    ictx->mctx = http_ctx->mctx;
 
     ts_lua_set_http_intercept_ctx(ictx->lua, ictx);
 
@@ -432,9 +434,10 @@ ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
 void 
 ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx)
 {
-    ts_lua_http_ctx   *http_ctx;
+    ts_lua_main_ctx   *main_ctx;
+    struct ict_item   *node, *snode;
 
-    http_ctx = ictx->hctx;
+    main_ctx = ictx->mctx;
 
     if (ictx->net_vc)
         TSVConnClose(ictx->net_vc);
@@ -442,7 +445,20 @@ ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx)
     TS_LUA_RELEASE_IO_HANDLE((&ictx->input));
     TS_LUA_RELEASE_IO_HANDLE((&ictx->output));
 
-    luaL_unref(http_ctx->lua, LUA_REGISTRYINDEX, ictx->ref);
+    node = ictx->ict_chain;
+
+    while (node) {
+        if (!node->deleted) {
+            node->cleanup(node);
+        }
+
+        snode = node;
+        node = node->next;
+
+        TSfree(snode);
+    }
+
+    luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, ictx->ref);
     TSfree(ictx);
     return;
 }
