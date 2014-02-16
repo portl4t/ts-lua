@@ -919,16 +919,67 @@ Here is an basic example:
 
     res = ts.fetch('http://a.tbcdn.cn/',
                 {
-                    ['Host'] = 'a.tbcdn.cn',
-                    ['Accept'] = '*/*',
-                    ['User-Agent'] = 'libfetcher'
+                    ['header'] = {
+                                    ['Host'] = 'a.tbcdn.cn',
+                                    ['Accept'] = '*/*',
+                                    ['User-Agent'] = 'libfetcher'
+                                 }
                 })
 
 Returns a Lua table with four slots (res.status, res.header, res.body, and res.err).
 
 `res.status` holds the response status code of the inner http request.
+
 `res.header` holds the response headers of the inner http request, it is a lua table.
-`res.body` holds the response body of the inner http request.
+
+`res.body` holds the response body of the inner http request. This field will be nil if streaming is specified.
+
+`res.err` indicates error exists or not.
+
+An http_table can be fed as the second argument, which supports the options:
+
+    method      specify the inner request's method, like 'GET'(default), 'POST',
+
+    header      specify the inner request's header, should be a Lua table.
+
+    body        specify the inner request's post body.
+
+
+Specify "options" to control how fetch will be performed. The following options characters are supported:
+
+    d           dechunk the response body
+
+    s           perform fetch streamingly
+
+Here is an example of streamingly fetch:
+
+    local res = ts.fetch('http://a.tbcdn.cn/echo/naizhen',
+                    {
+                        ['header'] = {
+                                        ['Host'] = 'a.tbcdn.cn',
+                                        ['Accept'] = '*/*',
+                                        ['User-Agent'] = 'libfetcher'
+                                     }
+                    }, 's')
+
+    repeat
+        body, eos, err = ts.fetch_read(res)
+
+        if err then
+            print('error!!!')
+            break
+
+        else
+            if body then
+                print(body)
+            end
+
+            if eos then
+                break
+            end
+        end
+
+    until false
 
 
 TODO
