@@ -982,12 +982,76 @@ Here is an example of streamingly fetch:
     until false
 
 
+ts.fetch_read
+------
+**syntax**: *body, eos, err = ts.fetch_read(res)*
+
+**context**: *intercept or server_intercept*
+
+**description**: Read data from fetch handler returned by `ts.fetch`. This feature is under fetch branch.
+
+
+ts.say
+------
+**syntax**: *ts.say(data)*
+
+**context**: *intercept or server_intercept*
+
+**description**: Write response to ATS within intercept or server_intercept.
+
+Here is an example:
+
+    require 'os'
+
+    function send_data()
+        local nt = os.time()..' Zheng.\n'
+
+        local resp =  'HTTP/1.0 200 OK\r\n' ..
+            'Server: ATS/3.2.0\r\n' ..
+            'Content-Type: text/plain\r\n' ..
+            'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
+            'Connection: keep-alive\r\n' ..
+            'Cache-Control: max-age=7200\r\n' ..
+            'Accept-Ranges: bytes\r\n\r\n' ..
+            nt
+
+        ts.say(resp)
+        ts.flush()
+        ts.sleep(1)
+        ts.say('~~finish~~\n')
+    end
+
+
+    function do_remap()
+        ts.http.intercept(send_data)
+        return 0
+    end
+
+
+ts.flush
+------
+**syntax**: *ts.flush()*
+
+**context**: *intercept or server_intercept*
+
+**description**: Flush the output to ATS within intercept or server_intercept.
+
+
+ts.sleep
+------
+**syntax**: *ts.sleep(sec)*
+
+**context**: *intercept or server_intercept*
+
+**description**: Sleeps for the specified seconds without blocking.
+
+
+
 TODO
 =======
 Short Term
 ------
 * non-blocking I/O operation
-* ts.fetch
 
 Long Term
 ------
