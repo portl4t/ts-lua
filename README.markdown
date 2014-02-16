@@ -907,6 +907,29 @@ Specify "options" to control how the match operation will be performed. The foll
 
 
 
+ts.fetch
+------
+**syntax**: *res = ts.fetch(url, http_table, options?)*
+
+**context**: *intercept or server_intercept*
+
+**description**: Issue a synchronous but still non-blocking inner http request using url and http_table. This feature is under fetch branch.
+
+Here is an basic example:
+
+    res = ts.fetch('http://a.tbcdn.cn/',
+                {
+                    ['Host'] = 'a.tbcdn.cn',
+                    ['Accept'] = '*/*',
+                    ['User-Agent'] = 'libfetcher'
+                })
+
+Returns a Lua table with four slots (res.status, res.header, res.body, and res.err).
+
+`res.status` holds the response status code of the inner http request.
+`res.header` holds the response headers of the inner http request, it is a lua table.
+`res.body` holds the response body of the inner http request.
+
 
 TODO
 =======
