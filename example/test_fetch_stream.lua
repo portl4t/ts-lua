@@ -18,19 +18,6 @@
 require 'os'
 
 function send_data()
-    local nt = os.time()..' Zheng.\n'
-
-    local resp =  'HTTP/1.0 200 OK\r\n' ..
-        'Server: ATS/3.2.0\r\n' ..
-        'Content-Type: text/plain\r\n' ..
-        'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
-        'Connection: keep-alive\r\n' ..
-        'Cache-Control: max-age=7200\r\n' ..
-        'Accept-Ranges: bytes\r\n\r\n' ..
-        nt
-
-    ts.say(resp)
-    ts.flush()
 
     local res = ts.fetch('http://a.tbcdn.cn/echo/naizhen', 
                     {
@@ -41,12 +28,17 @@ function send_data()
                                      }
                     }, 's')
 
-    print(res.status)
-    print(res.handler)
+
+    local resp = string.format('HTTP/1.1 %d OK\r\n', res.status)
 
     for key, value in pairs(res.header) do
-        print(key..': '..value)
+        resp = resp .. key..': '..value .. '\r\n'
     end
+
+    resp = resp .. '\r\n'
+
+    ts.say(resp)
+    ts.flush()
 
     repeat
         body, eos, err = ts.fetch_read(res)
@@ -67,8 +59,6 @@ function send_data()
         end
 
     until false
-
-    ts.say('~~finish~~\n')
 end
 
 
