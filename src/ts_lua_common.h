@@ -149,6 +149,7 @@ typedef struct ict_ctx {
     TSVConn             net_vc;
 
     ts_lua_main_ctx     *mctx;
+    ts_lua_http_ctx     *hctx;
 
     struct ict_item     *ict_chain;
 

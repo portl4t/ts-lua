@@ -24,10 +24,13 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
+#define ts_lua_base64_encoded_length(len)  (((len + 2) / 3) * 4)
+#define ts_lua_base64_decoded_length(len)  (((len + 3) / 4) * 3)
+
 u_char * ts_lua_hex_dump(u_char *dst, u_char *src, size_t len);
 
-void ts_lua_encode_base64(u_char *dst, size_t dst_len, u_char *src, size_t src_len);
-void ts_lua_decode_base64(u_char *dst, size_t dst_len, u_char *src, size_t src_len);
+void ts_lua_encode_base64(u_char *dst, size_t *dst_len, u_char *src, size_t src_len);
+int ts_lua_decode_base64(u_char *dst, size_t *dst_len, u_char *src, size_t src_len);
 
 #endif
 

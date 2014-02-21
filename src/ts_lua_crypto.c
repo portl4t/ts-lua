@@ -17,11 +17,22 @@
 */
 
 #include <openssl/md5.h>
+#include <openssl/sha.h>
 #include "ts_lua_string.h"
 #include "ts_lua_util.h"
 
+
+#define TS_LUA_MD5_DIGEST_LENGTH 16
+#define TS_LUA_SHA_DIGEST_LENGTH 20
+
 static int ts_lua_md5(lua_State *L);
 static int ts_lua_md5_bin(lua_State *L);
+
+static int ts_lua_sha1(lua_State *L);
+static int ts_lua_sha1_bin(lua_State *L);
+
+static int ts_lua_base64_encode(lua_State *L);
+static int ts_lua_base64_decode(lua_State *L);
 
 
 void
@@ -34,6 +45,22 @@ ts_lua_inject_crypto_api(lua_State *L)
     /* ts.md5_bin(...) */
     lua_pushcfunction(L, ts_lua_md5_bin);
     lua_setfield(L, -2, "md5_bin");
+
+    /* ts.sha1_bin(...) */
+    lua_pushcfunction(L, ts_lua_sha1);
+    lua_setfield(L, -2, "sha1");
+
+    /* ts.sha1_bin(...) */
+    lua_pushcfunction(L, ts_lua_sha1_bin);
+    lua_setfield(L, -2, "sha1_bin");
+
+    /* ts.base64_encode(...) */
+    lua_pushcfunction(L, ts_lua_base64_encode);
+    lua_setfield(L, -2, "base64_encode");
+
+    /* ts.base64_decode(...) */
+    lua_pushcfunction(L, ts_lua_base64_decode);
+    lua_setfield(L, -2, "base64_decode");
 }
 
 static int
@@ -43,7 +70,7 @@ ts_lua_md5(lua_State *L)
     size_t      slen;
 
     MD5_CTX     md5_ctx;
-    u_char      md5_buf[16];
+    u_char      md5_buf[TS_LUA_MD5_DIGEST_LENGTH];
     u_char      hex_buf[2 * sizeof(md5_buf)];
 
     if (lua_gettop(L) != 1) {
@@ -76,7 +103,7 @@ ts_lua_md5_bin(lua_State *L)
     size_t      slen;
 
     MD5_CTX     md5_ctx;
-    u_char      md5_buf[16];
+    u_char      md5_buf[TS_LUA_MD5_DIGEST_LENGTH];
 
     if (lua_gettop(L) != 1) {
         return luaL_error(L, "expecting one argument");
@@ -95,6 +122,133 @@ ts_lua_md5_bin(lua_State *L)
     MD5_Final(md5_buf, &md5_ctx);
 
     lua_pushlstring(L, (char *) md5_buf, sizeof(md5_buf));
+
+    return 1;
+}
+
+static int
+ts_lua_sha1(lua_State *L)
+{
+    u_char      *src;
+    size_t      slen;
+
+    SHA_CTX     sha;
+    u_char      sha_buf[TS_LUA_SHA_DIGEST_LENGTH];
+    u_char      hex_buf[2 * sizeof(sha_buf)];
+
+    if (lua_gettop(L) != 1) {
+        return luaL_error(L, "expecting one argument");
+    }
+
+    if (lua_isnil(L, 1)) {
+        src = (u_char *)"";
+        slen = 0;
+
+    } else {
+        src = (u_char *)luaL_checklstring(L, 1, &slen);
+    }
+
+    SHA1_Init(&sha);
+    SHA1_Update(&sha, src, slen);
+    SHA1_Final(sha_buf, &sha);
+
+    ts_lua_hex_dump(hex_buf, sha_buf, sizeof(sha_buf));
+    lua_pushlstring(L, (char *)hex_buf, sizeof(hex_buf));
+
+    return 1;
+}
+
+static int
+ts_lua_sha1_bin(lua_State *L)
+{
+    u_char      *src;
+    size_t      slen;
+
+    SHA_CTX     sha;
+    u_char      sha_buf[TS_LUA_SHA_DIGEST_LENGTH];
+
+    if (lua_gettop(L) != 1) {
+        return luaL_error(L, "expecting one argument");
+    }
+
+    if (lua_isnil(L, 1)) {
+        src = (u_char *)"";
+        slen = 0;
+
+    } else {
+        src = (u_char *)luaL_checklstring(L, 1, &slen);
+    }
+
+    SHA1_Init(&sha);
+    SHA1_Update(&sha, src, slen);
+    SHA1_Final(sha_buf, &sha);
+
+    lua_pushlstring(L, (char *)sha_buf, sizeof(sha_buf));
+
+    return 1;
+}
+
+static int
+ts_lua_base64_encode(lua_State *L)
+{
+    u_char      *src;
+    u_char      *dst;
+    size_t      slen;
+    size_t      dlen;
+
+    if (lua_gettop(L) != 1) {
+        return luaL_error(L, "expecting one argument");
+    }
+
+    if (lua_isnil(L, 1)) {
+        src = (u_char *)"";
+        slen = 0;
+
+    } else {
+        src = (u_char*)luaL_checklstring(L, 1, &slen);
+    }
+
+    dlen = ts_lua_base64_encoded_length(slen);
+
+    dst = lua_newuserdata(L, dlen);
+
+    ts_lua_encode_base64(dst, &dlen, src, slen);
+
+    lua_pushlstring(L, (char*)dst, dlen);
+
+    return 1;
+}
+
+static int
+ts_lua_base64_decode(lua_State *L)
+{
+    u_char      *src;
+    u_char      *dst;
+    size_t      slen;
+    size_t      dlen;
+
+    if (lua_gettop(L) != 1) {
+        return luaL_error(L, "expecting one argument");
+    }
+
+    if (lua_isnil(L, 1)) {
+        src = (u_char *)"";
+        slen = 0;
+
+    } else {
+        src = (u_char*)luaL_checklstring(L, 1, &slen);
+    }
+
+    dlen = ts_lua_base64_decoded_length(slen);
+
+    dst = lua_newuserdata(L, dlen);
+
+    if (ts_lua_decode_base64(dst, &dlen, src, slen) == 0) {
+        lua_pushlstring(L, (char*)dst, dlen);
+
+    } else {
+        lua_pushnil(L);
+    }
 
     return 1;
 }
