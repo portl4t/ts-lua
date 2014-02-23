@@ -1051,7 +1051,7 @@ TODO
 =======
 Short Term
 ------
-* non-blocking I/O operation
+* ts.shared.DICT
 
 Long Term
 ------
