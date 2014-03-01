@@ -11,6 +11,10 @@ Version
 ======
 ts-lua has not been released yet.
 
+Google group
+======
+https://groups.google.com/forum/#!forum/ts-lua
+
 Synopsis
 ======
 
