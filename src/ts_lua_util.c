@@ -32,6 +32,7 @@
 #include "ts_lua_log.h"
 #include "ts_lua_crypto.h"
 #include "ts_lua_mgmt.h"
+#include "ts_lua_shared_dict.h"
 
 static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
@@ -120,24 +121,30 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
         lua_setmetatable(L, -2);                            /* TB1[META]  = TB3 */
         lua_replace(L, LUA_GLOBALSINDEX);                   /* L[GLOBAL] = TB1 */
 
+        ts_lua_set_instance_conf(L, conf);
+
         if (conf->content) {
             if (luaL_loadstring(L, conf->content)) {
                 fprintf(stderr, "[%s] luaL_loadstring %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
                 lua_pop(L, 1);
+                TSMutexUnlock(arr[i].mutexp);
                 return -1;
             }
 
         } else if (luaL_loadfile(L, conf->script)) {
             fprintf(stderr, "[%s] luaL_loadfile %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
             lua_pop(L, 1);
+            TSMutexUnlock(arr[i].mutexp);
             return -1;
         }
 
         if (lua_pcall(L, 0, 0, 0)) {
             fprintf(stderr, "[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
             lua_pop(L, 1);
+            TSMutexUnlock(arr[i].mutexp);
             return -1;
         }
+
 
         /* call "__init__", to parse parameters */
         lua_getglobal(L, "__init__");
@@ -155,14 +162,17 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
             if (lua_pcall(L, 1, 1, 0)) {
                 fprintf(stderr, "[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
                 lua_pop(L, 1);
+                TSMutexUnlock(arr[i].mutexp);
                 return -1;
             }
 
             ret = lua_tonumber(L, -1);
             lua_pop(L, 1);
 
-            if (ret)
+            if (ret) {
+                TSMutexUnlock(arr[i].mutexp);
                 return -1;          /* script parse error */
+            }
 
         } else {
             lua_pop(L, 1);          /* pop nil */
@@ -233,7 +243,14 @@ ts_lua_init_instance(ts_lua_instance_conf *conf)
 int
 ts_lua_del_instance(ts_lua_instance_conf *conf)
 {
+    int     i;
+
     ts_lua_del_regex_map(&conf->regex_map);
+
+    for (i = 0; i < conf->shdict_n; i++) {
+        ts_lua_del_shared_dict(&conf->shdict[i]);
+    }
+
     return 0;
 }
 
@@ -271,6 +288,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_regex_api(L);
     ts_lua_inject_crypto_api(L);
     ts_lua_inject_mgmt_api(L);
+    ts_lua_inject_shared_dict_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");
@@ -279,6 +297,28 @@ ts_lua_inject_ts_api(lua_State *L)
     lua_pop(L, 2);
 
     lua_setglobal(L, "ts");
+}
+
+void
+ts_lua_set_instance_conf(lua_State *L, ts_lua_instance_conf *conf)
+{
+    lua_pushliteral(L, "__ts_instance_conf");
+    lua_pushlightuserdata(L, conf);
+    lua_rawset(L, LUA_GLOBALSINDEX);
+}
+
+ts_lua_instance_conf *
+ts_lua_get_instance_conf(lua_State *L)
+{
+    ts_lua_instance_conf *conf;
+
+    lua_pushliteral(L, "__ts_instance_conf");
+    lua_rawget(L, LUA_GLOBALSINDEX);
+    conf = lua_touserdata(L, -1);
+
+    lua_pop(L, 1);                      // pop the conf out
+
+    return conf;
 }
 
 void
@@ -422,7 +462,7 @@ ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
 
     ictx->lua = lua_newthread(L);
 
-    ictx->ref = luaL_ref(http_ctx->mctx->lua, LUA_REGISTRYINDEX);
+    ictx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     ictx->mctx = http_ctx->mctx;
     ictx->hctx = http_ctx;

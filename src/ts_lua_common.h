@@ -42,6 +42,8 @@
 
 #define TS_LUA_MAX_SCRIPT_FNAME_LENGTH      1024
 #define TS_LUA_MAX_CONFIG_VARS_COUNT        256
+#define TS_LUA_MAX_SHARED_DICT_NAME_LENGTH  128 
+#define TS_LUA_MAX_SHARED_DICT_COUNT        32
 #define TS_LUA_MAX_URL_LENGTH               2048
 #define TS_LUA_MAX_OVEC_SIZE                (3 * 32)
 #define TS_LUA_MAX_RESIDENT_PCRE            64
@@ -50,7 +52,15 @@
 #define TS_LUA_MEM_ALIGN(size)              (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
 #define TS_LUA_ALIGN_COUNT(size)            (size / TS_LUA_MIN_ALIGN)
 
+#define TS_LUA_MAKE_VAR_ITEM(X)             {X, #X}
+
 #define TS_LUA_DEBUG_TAG                    "ts_lua"
+
+
+typedef struct {
+    int     nvar;
+    char    *svar;
+} ts_lua_var_item;
 
 
 typedef struct {
@@ -60,11 +70,37 @@ typedef struct {
 
 
 typedef struct {
+    uint16_t        ksize;      // sizeof(long) or strlen(key)
+    uint16_t        vsize;      // 0 or strlen(val)
+
+    union
+    {
+      int64_t  n;
+      char     *s;
+    } v;
+
+    char            vtype;
+} ts_lua_shared_dict_item;
+
+
+typedef struct {
+    char            name[TS_LUA_MAX_SHARED_DICT_NAME_LENGTH];
+    ts_lua_hash_map map;
+    int64_t         quota;
+    int64_t         used;
+    int             flags;
+    int             initialized:1;
+} ts_lua_shared_dict;
+
+
+typedef struct {
     char    *content;
     char    script[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
     void    *conf_vars[TS_LUA_MAX_CONFIG_VARS_COUNT];
 
-    ts_lua_hash_map regex_map;
+    ts_lua_hash_map     regex_map;
+    ts_lua_shared_dict  shdict[TS_LUA_MAX_SHARED_DICT_COUNT];
+    int                 shdict_n;
 
 } ts_lua_instance_conf;
 

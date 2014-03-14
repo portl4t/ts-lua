@@ -1,7 +1,6 @@
 
 #include "ts_lua_hash_table.h"
 
-static Tcl_HashEntry * ts_lua_hash_table_lookup_entry(Tcl_HashTable *ht_ptr, const char *key);
 
 static Tcl_HashEntry *
 ts_lua_hash_table_iterator_first(Tcl_HashTable *ht_ptr, Tcl_HashSearch * state_ptr)
@@ -54,14 +53,14 @@ ts_lua_hash_table_entry_value(Tcl_HashTable *ht_ptr, Tcl_HashEntry *entry_ptr)
 }
 
 void
-ts_lua_hash_table_iterate(Tcl_HashTable *ht_ptr, TclHashEntryFunction func)
+ts_lua_hash_table_iterate(Tcl_HashTable *ht_ptr, TclHashEntryFunction func, void *data)
 {
     int retcode;
     Tcl_HashEntry *e;
     Tcl_HashSearch state;
 
     for (e = ts_lua_hash_table_iterator_first(ht_ptr, &state); e != NULL; e = ts_lua_hash_table_iterator_next(ht_ptr, &state)) {
-        retcode = (*func) (ht_ptr, e);
+        retcode = (*func) (ht_ptr, e, data);
         if (retcode != 0)
             break;
     }
@@ -82,7 +81,7 @@ ts_lua_hash_table_lookup(Tcl_HashTable *ht_ptr, const char* key, ClientData *val
     return 1;
 }
 
-static Tcl_HashEntry *
+Tcl_HashEntry *
 ts_lua_hash_table_lookup_entry(Tcl_HashTable *ht_ptr, const char *key)
 {
     Tcl_HashTable *tcl_ht_ptr;

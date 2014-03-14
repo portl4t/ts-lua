@@ -23,7 +23,7 @@
 
 static int ts_lua_regex_match(lua_State *L);
 
-static int free_pcre_value(Tcl_HashTable *t, Tcl_HashEntry *entry);
+static int free_pcre_value(Tcl_HashTable *t, Tcl_HashEntry *entry, void *data);
 
 void
 ts_lua_inject_regex_api(lua_State *L)
@@ -180,13 +180,13 @@ ts_lua_init_regex_map(ts_lua_hash_map *regex_map)
 int
 ts_lua_del_regex_map(ts_lua_hash_map *regex_map)
 {
-    ts_lua_hash_table_iterate(&(regex_map->t), free_pcre_value);
+    ts_lua_hash_table_iterate(&(regex_map->t), free_pcre_value, NULL);
     Tcl_DeleteHashTable(&(regex_map->t));
     return 0;
 }
 
 static int
-free_pcre_value(Tcl_HashTable *t, Tcl_HashEntry *entry)
+free_pcre_value(Tcl_HashTable *t, Tcl_HashEntry *entry, void *data)
 {
     ClientData  val;
 
