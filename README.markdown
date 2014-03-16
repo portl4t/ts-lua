@@ -5,7 +5,7 @@ ts-lua - Embed the Power of Lua into TrafficServer.
 This module is under active development and is production ready.
 
 ## Version
-ts-lua has not been released yet.
+This document describes ts-lua [v0.1.0](https://github.com/portl4t/ts-lua/tags) released on 16 March 2014.
 
 ## Google group
 https://groups.google.com/forum/#!forum/ts-lua
