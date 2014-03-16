@@ -36,9 +36,29 @@ Sometimes we want to receive parameters and process them in the script, we shoul
     map http://a.tbcdn.cn/ http://inner.tbcdn.cn/ @plugin=/XXX/libtslua.so @pparam=/XXX/sethost.lua @pparam=a.st.cn
 
 
-
 ## TS API for Lua
 https://github.com/portl4t/ts-lua/wiki/API
+
+## System Requirements
+* linux/freebsd 64bits
+* trafficserver
+* pcre
+* tcl
+* openssl
+* lua-5.1
+
+## Build
+**step1**: get ts-lua
+
+    git clone https://github.com/portl4t/ts-lua.git
+    cd ts-lua/src
+
+**step2**: build, requires linux/freebsd (64bits is recommended)
+
+    make
+
+**step3**: modify remap.config and restart the trafficserver
+
 
 
 ## TODO
