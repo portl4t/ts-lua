@@ -341,6 +341,7 @@ ts_lua_client_response_set_error_resp(lua_State *L)
     size_t      body_len;
     int         resp_len;
     char        *resp_buf;
+    TSMLoc      field_loc;
 
     ts_lua_http_ctx     *http_ctx;
 
@@ -372,6 +373,14 @@ ts_lua_client_response_set_error_resp(lua_State *L)
         resp_buf = TSmalloc(reason_len);
         memcpy(resp_buf, reason, reason_len);
         resp_len = reason_len;
+    }
+
+    field_loc = TSMimeHdrFieldFind(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
+                                        TS_MIME_FIELD_TRANSFER_ENCODING, TS_MIME_LEN_TRANSFER_ENCODING);
+
+    if (field_loc) {
+        TSMimeHdrFieldDestroy(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
     }
 
     TSHttpTxnErrorBodySet(http_ctx->txnp, resp_buf, resp_len, NULL);
