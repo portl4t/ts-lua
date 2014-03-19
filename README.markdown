@@ -62,9 +62,6 @@ https://github.com/portl4t/ts-lua/wiki/API
 
 
 ## TODO
-#### Short Term
 * ts.fetch
-
-#### Long Term
 * ts.socket
 
