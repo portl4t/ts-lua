@@ -14,17 +14,12 @@
 --  See the License for the specific language governing permissions and
 --  limitations under the License.
 
-function cache_lookup()
-    local cache_status = ts.http.get_cache_lookup_status()
-    if cache_status == TS_LUA_CACHE_LOOKUP_HIT_FRESH then
-        print('hit')
-    else
-        print('not hit')
-    end
-end
 
 function do_remap()
-    ts.hook(TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE, cache_lookup)
+    hdrs = ts.client_request.get_headers()
+    for k, v in pairs(hdrs) do
+        print(k..': '..v)
+    end
     return 0
 end
 
