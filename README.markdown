@@ -36,8 +36,8 @@ Sometimes we want to receive parameters and process them in the script, we shoul
 > map http://a.x.cn/ http://b.x.cn/ @plugin=/X/libtslua.so @pparam=/X/sethost.lua @pparam=a.st.cn
 
 
-## TS API for Lua
-https://github.com/portl4t/ts-lua/wiki/API
+## Doc
+https://github.com/portl4t/ts-lua/wiki/Doc
 
 ## System Requirements
 * linux/freebsd 64bits
@@ -63,5 +63,5 @@ https://github.com/portl4t/ts-lua/wiki/API
 
 ## TODO
 * ts.fetch
-* ts.socket
+* ts.cache_xxx
 
