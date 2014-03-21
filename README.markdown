@@ -60,8 +60,6 @@ https://github.com/portl4t/ts-lua/wiki/Doc
 **step3**: modify remap.config and restart the trafficserver
 
 
-
-## TODO
-* ts.fetch
-* ts.cache_xxx
+## See Also
+* [ts-fetcher](https://github.com/portl4t/ts-fetcher) http fetcher for ats, implement as plugin with c
 
