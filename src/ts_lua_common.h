@@ -102,6 +102,9 @@ typedef struct {
     ts_lua_shared_dict  shdict[TS_LUA_MAX_SHARED_DICT_COUNT];
     int                 shdict_n;
 
+    int                 _first: 1;      // create instance for 1st ts_lua_main_ctx
+    int                 _last: 1;       // create instance for the last ts_lua_main_ctx
+
 } ts_lua_instance_conf;
 
 

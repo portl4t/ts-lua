@@ -33,6 +33,7 @@
 #include "ts_lua_crypto.h"
 #include "ts_lua_mgmt.h"
 #include "ts_lua_shared_dict.h"
+#include "ts_lua_package.h"
 
 static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
@@ -107,6 +108,9 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
     lua_State       *L;
 
     for (i = 0; i < n; i++) {
+
+        conf->_first = (i == 0) ? 1 : 0;
+        conf->_last = (i == n - 1) ? 1 : 0;
 
         TSMutexLock(arr[i].mutexp);
 
@@ -289,6 +293,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_crypto_api(L);
     ts_lua_inject_mgmt_api(L);
     ts_lua_inject_shared_dict_api(L);
+    ts_lua_inject_package_api(L);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "loaded");
