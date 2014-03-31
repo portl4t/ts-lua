@@ -40,29 +40,35 @@
 #define TS_LUA_FUNCTION_READ_RESPONSE           "do_read_response"
 #define TS_LUA_FUNCTION_SEND_RESPONSE           "do_send_response"
 
-#define TS_LUA_MAX_SCRIPT_FNAME_LENGTH      1024
-#define TS_LUA_MAX_CONFIG_VARS_COUNT        256
-#define TS_LUA_MAX_SHARED_DICT_NAME_LENGTH  128 
-#define TS_LUA_MAX_SHARED_DICT_COUNT        32
-#define TS_LUA_MAX_URL_LENGTH               2048
-#define TS_LUA_MAX_OVEC_SIZE                (3 * 32)
-#define TS_LUA_MAX_RESIDENT_PCRE            64
+#define TS_LUA_DEBUG_TAG                        "ts_lua"
 
-#define TS_LUA_MIN_ALIGN                    sizeof(void*)
-#define TS_LUA_MEM_ALIGN(size)              (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
-#define TS_LUA_ALIGN_COUNT(size)            (size / TS_LUA_MIN_ALIGN)
+#define TS_LUA_MAX_SCRIPT_FNAME_LENGTH          1024
+#define TS_LUA_MAX_CONFIG_VARS_COUNT            256
+#define TS_LUA_MAX_SHARED_DICT_NAME_LENGTH      128
+#define TS_LUA_MAX_SHARED_DICT_COUNT            32
+#define TS_LUA_MAX_URL_LENGTH                   2048
+#define TS_LUA_MAX_OVEC_SIZE                    (3 * 32)
+#define TS_LUA_MAX_RESIDENT_PCRE                64
 
-#define TS_LUA_MAKE_VAR_ITEM(X)             {X, #X}
+#define TS_LUA_MIN_ALIGN                        sizeof(void*)
+#define TS_LUA_MEM_ALIGN(size)                  (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
+#define TS_LUA_ALIGN_COUNT(size)                (size / TS_LUA_MIN_ALIGN)
 
-#define TS_LUA_DEBUG_TAG                    "ts_lua"
+#define TS_LUA_MAKE_VAR_ITEM(X)                 {X, #X}
+
+#define ee(...)     fprintf(stderr, "Lua *** %s: ", __func__); \
+                            fprintf(stderr, __VA_ARGS__);   \
+                            fprintf(stderr, " @ %s line %d.\n", __FILE__, __LINE__)
 
 
+/* for http config or cntl var */
 typedef struct {
     int     nvar;
     char    *svar;
 } ts_lua_var_item;
 
 
+/* for dict */
 typedef struct {
     Tcl_HashTable   t;
     TSMutex         mutexp;
@@ -93,6 +99,7 @@ typedef struct {
 } ts_lua_shared_dict;
 
 
+/* plugin instance conf */
 typedef struct {
     char    *content;
     char    script[TS_LUA_MAX_SCRIPT_FNAME_LENGTH];
@@ -102,12 +109,13 @@ typedef struct {
     ts_lua_shared_dict  shdict[TS_LUA_MAX_SHARED_DICT_COUNT];
     int                 shdict_n;
 
-    int                 _first: 1;      // create instance for 1st ts_lua_main_ctx
-    int                 _last: 1;       // create instance for the last ts_lua_main_ctx
+    int                 _first: 1;      // create current instance for 1st ts_lua_main_ctx
+    int                 _last: 1;       // create current instance for the last ts_lua_main_ctx
 
 } ts_lua_instance_conf;
 
 
+/* global lua state struct */
 typedef struct {
     lua_State   *lua;
     TSMutex     mutexp;
@@ -115,6 +123,7 @@ typedef struct {
 } ts_lua_main_ctx;
 
 
+/* lua state for http request */
 typedef struct {
     lua_State   *lua;
     TSHttpTxn   txnp;
@@ -166,6 +175,7 @@ typedef struct {
 } ts_lua_transform_ctx;
 
 
+/* for intercept */
 struct ict_item;
 struct ict_ctx;
 typedef int (*ict_clean)(struct ict_item *item);
