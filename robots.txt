@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: 
+
+Sitemap: http://portl4t.github.io/ts-lua/sitemap.xml 
