@@ -57,18 +57,14 @@ ts_lua_log_object_creat(lua_State *L)
     int log_mode;
     TSReturnCode error;
 
-    ts_lua_http_ctx  *http_ctx;
-
-    http_ctx = ts_lua_get_http_ctx(L);
-
     log_name = luaL_checklstring(L, -2, &name_len);
 
     if (lua_isnil(L, 3)) {
         TSError("no log name!!");
         return -1;
+
     } else {
         log_mode = luaL_checknumber(L, 3);
-
     }
 
     error = TSTextLogObjectCreate(log_name, log_mode, &log);
@@ -78,6 +74,7 @@ ts_lua_log_object_creat(lua_State *L)
         TSError("creat log error <%s>",log_name);
         return -1;
     }
+
     return 0;
 }
 
@@ -94,13 +91,11 @@ ts_lua_log_object_write(lua_State *L)
     const char  *text;
     size_t      text_len;
 
-    ts_lua_http_ctx  *http_ctx;
-
-    http_ctx = ts_lua_get_http_ctx(L);
-
     text = luaL_checklstring(L, 1, &text_len);
+
     if(log) {
         TSTextLogObjectWrite(log, (char*)text, NULL);
+
     } else {
         TSError("[%s] log is not exsited!",__FUNCTION__);
     }
@@ -118,12 +113,9 @@ ts_lua_inject_log_object_destroy_api(lua_State * L)
 static int
 ts_lua_log_object_destroy(lua_State *L)
 {
-    ts_lua_http_ctx *http_ctx;
-
-    http_ctx = ts_lua_get_http_ctx(L);
-
     if(TSTextLogObjectDestroy(log) != TS_SUCCESS)
         TSError("[%s] TSTextLogObjectDestroy error!",__FUNCTION__);
 
     return 0;
 }
+
