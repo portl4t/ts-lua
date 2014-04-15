@@ -215,7 +215,7 @@ ts_lua_shared_dict_set_metatable(lua_State *L)
 static int
 ts_lua_shared_dict_init(lua_State *L)
 {
-    int                     n, ret;
+    int                     n;
     ts_lua_shared_dict      *dct;
 
     n = lua_gettop(L);
@@ -244,8 +244,6 @@ ts_lua_shared_dict_init(lua_State *L)
     if (lua_pcall(L, 1, 1, 0)) {
         return luaL_error(L, "lua_pcall failed inside xx:init(func): %s", lua_tostring(L, -1));
     }
-
-    ret = lua_tonumber(L, -1);  // just return this value
 
     dct->initialized = 1;
 
