@@ -22,8 +22,8 @@
 #include "ts_lua_util.h"
 
 
-#define TS_LUA_MD5_DIGEST_LENGTH 16
-#define TS_LUA_SHA_DIGEST_LENGTH 20
+#define TS_LUA_MD5_DIGEST_LENGTH    16
+#define TS_LUA_SHA_DIGEST_LENGTH    20
 
 static int ts_lua_md5(lua_State *L);
 static int ts_lua_md5_bin(lua_State *L);
@@ -33,6 +33,9 @@ static int ts_lua_sha1_bin(lua_State *L);
 
 static int ts_lua_base64_encode(lua_State *L);
 static int ts_lua_base64_decode(lua_State *L);
+
+static int ts_lua_escape_uri(lua_State *L);
+static int ts_lua_unescape_uri(lua_State *L);
 
 
 void
@@ -61,6 +64,14 @@ ts_lua_inject_crypto_api(lua_State *L)
     /* ts.base64_decode(...) */
     lua_pushcfunction(L, ts_lua_base64_decode);
     lua_setfield(L, -2, "base64_decode");
+
+    /* ts.escape_uri(...) */
+    lua_pushcfunction(L, ts_lua_escape_uri);
+    lua_setfield(L, -2, "escape_uri");
+
+    /* ts.unescape_uri(...) */
+    lua_pushcfunction(L, ts_lua_unescape_uri);
+    lua_setfield(L, -2, "unescape_uri");
 }
 
 static int
@@ -249,6 +260,71 @@ ts_lua_base64_decode(lua_State *L)
     } else {
         lua_pushnil(L);
     }
+
+    return 1;
+}
+
+static int
+ts_lua_escape_uri(lua_State *L)
+{
+    size_t          len, dlen;
+    u_char          *src, *dst;
+    uintptr_t       escape;
+
+    if (lua_gettop(L) != 1) {
+        return luaL_error(L, "expecting one argument for ts.escape_uri(...)");
+    }
+
+    if (lua_isnil(L, 1)) {
+        lua_pushliteral(L, "");
+        return 1;
+    }
+
+    src = (u_char*)luaL_checklstring(L, 1, &len);
+
+    if (len == 0)
+        return 1;
+
+    escape = 2 * ts_lua_escape_internal(NULL, src, len, TS_ESCAPE_URI);
+
+    if (escape) {
+        dlen = escape + len;
+        dst = lua_newuserdata(L, dlen);
+        ts_lua_escape_internal(dst, src, len, TS_ESCAPE_URI);
+        lua_pushlstring(L, (char *) dst, dlen);
+    }
+
+    return 1;
+}
+
+static int
+ts_lua_unescape_uri(lua_State *L)
+{
+    size_t                  len, dlen;
+    u_char                  *p;
+    u_char                  *src, *dst;
+
+    if (lua_gettop(L) != 1) {
+        return luaL_error(L, "expecting one argument for ts.unescape_uri(...)");
+    }
+
+    if (lua_isnil(L, 1)) {
+        lua_pushliteral(L, "");
+        return 1;
+    }
+
+    src = (u_char *) luaL_checklstring(L, 1, &len);
+
+    /*  the unescaped string can only be smaller */
+    dlen = len;
+
+    p = lua_newuserdata(L, dlen);
+
+    dst = p;
+
+    ts_lua_unescape_internal(&dst, &src, len, TS_UNESCAPE_URI_COMPONENT);
+
+    lua_pushlstring(L, (char *) p, dst - p);
 
     return 1;
 }

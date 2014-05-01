@@ -23,6 +23,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <inttypes.h>
+
+#define TS_ESCAPE_URI            0
+#define TS_ESCAPE_ARGS           1
+#define TS_ESCAPE_URI_COMPONENT  2
+#define TS_ESCAPE_HTML           3
+#define TS_ESCAPE_REFRESH        4
+#define TS_ESCAPE_MEMCACHED      5
+#define TS_ESCAPE_MAIL_AUTH      6
+
+#define TS_UNESCAPE_URI_COMPONENT   0
+#define TS_UNESCAPE_URI             1
+#define TS_UNESCAPE_REDIRECT        2
 
 #define ts_lua_base64_encoded_length(len)  (((len + 2) / 3) * 4)
 #define ts_lua_base64_decoded_length(len)  (((len + 3) / 4) * 3)
@@ -32,5 +45,7 @@ u_char * ts_lua_hex_dump(u_char *dst, u_char *src, size_t len);
 void ts_lua_encode_base64(u_char *dst, size_t *dst_len, u_char *src, size_t src_len);
 int ts_lua_decode_base64(u_char *dst, size_t *dst_len, u_char *src, size_t src_len);
 
+uintptr_t ts_lua_escape_internal(u_char *dst, u_char *src, size_t size, int type);
+void ts_lua_unescape_internal(u_char **dst, u_char **src, size_t size, int type);
 #endif
 
