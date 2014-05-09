@@ -12,19 +12,19 @@ https://groups.google.com/forum/#!forum/ts-lua
 
 ##Synopsis
 **test_hdr.lua**
+```lua
+function send_response()
+    ts.client_response.header['Rhost'] = ts.ctx['rhost']
+    return 0
+end
 
-    function send_response()
-        ts.client_response.header['Rhost'] = ts.ctx['rhost']
-        return 0
-    end
-
-    function do_remap()
-        local req_host = ts.client_request.header.Host
-        ts.ctx['rhost'] = string.reverse(req_host)
-        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
-        return 0
-    end
-
+function do_remap()
+    local req_host = ts.client_request.header.Host
+    ts.ctx['rhost'] = string.reverse(req_host)
+    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
+    return 0
+end
+```
 
 ## Description
 This module embeds Lua, via the standard Lua 5.1 interpreter, into Apache Traffic Server. This module acts as remap plugin of Traffic Server, so we should realize **'do_remap'** function in each lua script. We can write this in remap.config:
