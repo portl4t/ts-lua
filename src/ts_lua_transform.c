@@ -163,6 +163,7 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
         TSVIONBytesSet(transform_ctx->output_vio, transform_ctx->total);
         TSVIOReenable(transform_ctx->output_vio);
         TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_WRITE_COMPLETE, input_vio);
+
     } else {
         TSVIOReenable(transform_ctx->output_vio);
         TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_WRITE_READY, input_vio);
