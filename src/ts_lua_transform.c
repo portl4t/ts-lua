@@ -64,6 +64,8 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
     TSIOBufferReader    input_reader;
     TSIOBufferBlock     blk;
     int64_t             towrite, blk_len, upstream_done, avail, left;
+    int64_t             inlen, outlen;
+    void                *ptr;
     const char          *start;
     const char          *res;
     size_t              res_len;
@@ -82,7 +84,28 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
     if (!transform_ctx->output_buffer) {
         transform_ctx->output_buffer = TSIOBufferCreate();
         transform_ctx->output_reader = TSIOBufferReaderAlloc(transform_ctx->output_buffer);
-        transform_ctx->output_vio = TSVConnWrite(output_conn, contp, transform_ctx->output_reader, INT64_MAX);
+
+        outlen = INT64_MAX;
+        inlen = TSVIONBytesGet(input_vio);
+
+        if (inlen != INT64_MAX) {
+            ptr = TS_LUA_TRANSFORM_CL_KEY(transform_ctx);
+            lua_pushlightuserdata(L, ptr);
+            lua_rawget(L, LUA_GLOBALSINDEX);        // get transform length set handler
+
+            if (lua_isfunction(L, -1)) {
+                lua_pushnumber(L, inlen);
+                if (lua_pcall(L, 1, 1, 0)) {
+                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(L, -1));
+                }
+
+                outlen = lua_tonumber(L, -1);
+            }
+
+            lua_pop(L, 1);
+        }
+
+        transform_ctx->output_vio = TSVConnWrite(output_conn, contp, transform_ctx->output_reader, outlen);
     }
 
     if (!TSVIOBufferGet(input_vio)) {

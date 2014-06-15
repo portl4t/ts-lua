@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o .lo
 
 COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -g
-INC_PATH = -Imodules
+INC_PATH = -Imodules -I/usr/include/trafficserver
 LIB_PATH = -L/usr/local/lib -lssl -llua-5.1 -lpcre -ltcl
 
 SHARED_OBJS = ts_lua.lo ts_lua_string.lo ts_lua_client_request.lo  ts_lua_client_response.lo ts_lua_server_request.lo \

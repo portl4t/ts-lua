@@ -54,8 +54,9 @@
 #define TS_LUA_MEM_ALIGN(size)                  (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
 #define TS_LUA_ALIGN_COUNT(size)                (size / TS_LUA_MIN_ALIGN)
 
-#define TS_LUA_MAKE_VAR_ITEM(X)                 {X, #X}
+#define TS_LUA_TRANSFORM_CL_KEY(x)              (x + 0x01)
 
+#define TS_LUA_MAKE_VAR_ITEM(X)                 {X, #X}
 #define ee(...)     fprintf(stderr, "Lua *** %s: ", __func__); \
                             fprintf(stderr, __VA_ARGS__);   \
                             fprintf(stderr, " @ %s line %d.\n", __FILE__, __LINE__)

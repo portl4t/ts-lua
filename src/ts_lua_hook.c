@@ -76,7 +76,8 @@ static int
 ts_lua_add_hook(lua_State *L)
 {
     int                     type;
-    int                     entry;
+    int                     entry, n;
+    void                    *ptr;
 
     TSVConn                 connp;
     ts_lua_http_ctx         *http_ctx;
@@ -133,13 +134,23 @@ ts_lua_add_hook(lua_State *L)
 
             if (entry == TS_LUA_REQUEST_TRANSFORM) {
                 TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_REQUEST_TRANSFORM_HOOK, connp);
+
             } else {
                 TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_RESPONSE_TRANSFORM_HOOK, connp);
             }
 
             lua_pushlightuserdata(L, transform_ctx);
             lua_pushvalue(L, 2);
-            lua_rawset(L, LUA_GLOBALSINDEX);
+            lua_rawset(L, LUA_GLOBALSINDEX);            // this is the transform handler
+
+            n = lua_gettop(L);
+            if (n >= 3 && lua_isfunction(L, 3)) {       // set transform length
+                ptr = TS_LUA_TRANSFORM_CL_KEY(transform_ctx);
+                lua_pushlightuserdata(L, ptr);
+                lua_pushvalue(L, 3);
+                lua_rawset(L, LUA_GLOBALSINDEX);         // this is the transform length set handler
+            }
+
             break;
 
         default:
