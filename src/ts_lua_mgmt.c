@@ -53,11 +53,13 @@ ts_lua_mgmt_get_int(lua_State *L)
     TSMgmtInt   int_val;
 
     name = luaL_checklstring(L, 1, &name_len);
-    TSMgmtIntGet(name, &int_val);
 
-    lua_pushinteger(L, int_val);
+    if (TS_SUCCESS == TSMgmtIntGet(name, &int_val)) {
+        lua_pushinteger(L, int_val);
+        return 1;
+    }
 
-    return 1;
+    return 0;
 }
 
 static int
@@ -68,11 +70,13 @@ ts_lua_mgmt_get_counter(lua_State *L)
     TSMgmtCounter   counter_val;
 
     name = luaL_checklstring(L, 1, &name_len);
-    TSMgmtCounterGet(name, &counter_val);
 
-    lua_pushinteger(L, counter_val);
+    if (TS_SUCCESS == TSMgmtCounterGet(name, &counter_val)) {
+        lua_pushinteger(L, counter_val);
+        return 1;
+    }
 
-    return 1;
+    return 0;
 }
 
 static int
@@ -83,11 +87,13 @@ ts_lua_mgmt_get_float(lua_State *L)
     TSMgmtFloat     float_val;
 
     name = luaL_checklstring(L, 1, &name_len);
-    TSMgmtFloatGet(name, &float_val);
 
-    lua_pushnumber(L, float_val);
+    if (TS_SUCCESS == TSMgmtFloatGet(name, &float_val)) {
+        lua_pushnumber(L, float_val);
+        return 1;
+    }
 
-    return 1;
+    return 0;
 }
 
 static int
@@ -98,10 +104,12 @@ ts_lua_mgmt_get_string(lua_State *L)
     TSMgmtString    str_val;
 
     name = luaL_checklstring(L, 1, &name_len);
-    TSMgmtStringGet(name, &str_val);
 
-    lua_pushstring(L, str_val);
+    if (TS_SUCCESS == TSMgmtStringGet(name, &str_val)) {
+        lua_pushstring(L, str_val);
+        return 1;
+    }
 
-    return 1;
+    return 0;
 }
 
