@@ -15,24 +15,13 @@
 --  limitations under the License.
 
 
-function send_response()
---    ts.client_response.set_error_resp(404, 'bad luck :(\n')
-    ts.client_response.set_error_resp(200, 'bad luck :(\n')
-end
-
-function cache_lookup()
-   local cache_status = ts.http.get_cache_lookup_status()
-
-    if cache_status == TS_LUA_CACHE_LOOKUP_HIT_FRESH then
-        code = ts.cached_response.get_status()
-        print(code)
---        ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
-        return -1
-    end
-end
-
 function do_remap()
-    ts.hook(TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE, cache_lookup)
+    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
     return 0
+end
+
+function send_response()
+    ts.client_response.header['Ng'] = {'a', 'b', 'c'}
+--    ts.client_response.header['Ng'] = 'Hello world'
 end
 

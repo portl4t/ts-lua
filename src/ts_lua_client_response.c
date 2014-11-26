@@ -131,6 +131,7 @@ ts_lua_client_response_header_set(lua_State *L)
     size_t      val_len;
     size_t      key_len;
     int         remove;
+    int         tb, n, i;
 
     TSMLoc      field_loc;
 
@@ -139,45 +140,73 @@ ts_lua_client_response_header_set(lua_State *L)
     http_ctx = ts_lua_get_http_ctx(L);
 
     remove = 0;
+    tb = 0;
     val = NULL;
 
     /*  we skip the first argument that is the table */
     key = luaL_checklstring(L, 2, &key_len);
     if (lua_isnil(L, 3)) {
         remove = 1;
+
+    } else if (lua_istable(L, 3)) {
+        tb = 1;
+
     } else {
         val = luaL_checklstring(L, 3, &val_len);
     }
 
-    if (!http_ctx->client_response_hdrp) {
-        if (TSHttpTxnClientRespGet(http_ctx->txnp, &http_ctx->client_response_bufp, 
-                    &http_ctx->client_response_hdrp) != TS_SUCCESS) {
-            return 0;
-        }
-    }
+    TS_LUA_CHECK_CLIENT_RESPONSE_HDR(http_ctx);
 
     field_loc = TSMimeHdrFieldFind(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, key, key_len);
 
     if (remove) {
         if (field_loc) {
             TSMimeHdrFieldDestroy(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+            TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
         }
 
-    } else if (field_loc) {
-        TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, 0, val, val_len);
+    } else if (tb == 0) {
 
-    } else if (TSMimeHdrFieldCreateNamed(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, 
-                    key, key_len, &field_loc) != TS_SUCCESS) { 
-        TSError("[%s] TSMimeHdrFieldCreateNamed error", __FUNCTION__);
-        return 0;
+        if (field_loc) {
+            TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
+                                         field_loc, 0, val, val_len);
+            TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+
+        } else if (TSMimeHdrFieldCreateNamed(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
+                    key, key_len, &field_loc) == TS_SUCCESS) {
+
+            TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
+                                         field_loc, -1, val, val_len);
+
+            TSMimeHdrFieldAppend(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+            TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        }
 
     } else {
-        TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, -1, val, val_len);
-        TSMimeHdrFieldAppend(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
-    }
 
-    if (field_loc)
-        TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        if (field_loc) {
+            TSMimeHdrFieldDestroy(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+            TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+        }
+
+        n = lua_objlen(L, 3);
+
+        for (i = 1; i <= n; i++) {
+
+            lua_pushnumber(L, i);
+            lua_gettable(L, 3);
+            val = lua_tolstring(L, -1, &val_len);
+
+            if (TSMimeHdrFieldCreateNamed(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
+                        key, key_len, &field_loc) == TS_SUCCESS) {
+                TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc, -1, val, val_len);
+                TSMimeHdrFieldAppend(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+                TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
+            }
+
+            lua_pop(L, 1);
+        }
+    }
 
     return 0;
 }
