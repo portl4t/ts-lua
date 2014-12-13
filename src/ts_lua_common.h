@@ -165,15 +165,13 @@ typedef struct {
 } ts_lua_io_handle;
 
 typedef struct {
-    TSVIO               output_vio;
-    TSIOBuffer          output_buffer;
-    TSIOBufferReader    output_reader;
+    ts_lua_io_handle    output;
 
-    int64_t             total;
     ts_lua_http_ctx     *hctx;
-    int                 eos;
-
-} ts_lua_transform_ctx;
+    int64_t             upstream_bytes;
+    int64_t             downstream_bytes;
+    int64_t             total;
+} ts_lua_http_transform_ctx;
 
 
 /* for intercept */

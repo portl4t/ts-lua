@@ -509,17 +509,55 @@ ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx)
     return;
 }
 
+void
+ts_lua_set_http_transform_ctx(lua_State *L, ts_lua_http_transform_ctx  *tctx)
+{
+    lua_pushliteral(L, "__ts_http_transform_ctx");
+    lua_pushlightuserdata(L, tctx);
+    lua_rawset(L, LUA_GLOBALSINDEX);
+}
+
+ts_lua_http_transform_ctx *
+ts_lua_get_http_transform_ctx(lua_State *L)
+{
+    ts_lua_http_transform_ctx  *tctx;
+
+    lua_pushliteral(L, "__ts_http_transform_ctx");
+    lua_rawget(L, LUA_GLOBALSINDEX);
+    tctx = lua_touserdata(L, -1);
+
+    lua_pop(L, 1);                      // pop the ictx out
+
+    return tctx;
+}
+
+
+
+ts_lua_http_transform_ctx *
+ts_lua_create_http_transform_ctx(ts_lua_http_ctx *http_ctx)
+{
+    ts_lua_http_transform_ctx    *transform_ctx;
+
+    transform_ctx = (ts_lua_http_transform_ctx*)TSmalloc(sizeof(ts_lua_http_transform_ctx));
+    memset(transform_ctx, 0, sizeof(ts_lua_http_transform_ctx));
+
+    transform_ctx->hctx = http_ctx;
+    ts_lua_set_http_transform_ctx(http_ctx->lua, transform_ctx);
+
+    return transform_ctx;
+}
+
 void 
-ts_lua_destroy_transform_ctx(ts_lua_transform_ctx *transform_ctx)
+ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
 {
     if (!transform_ctx)
         return;
 
-    if (transform_ctx->output_reader)
-        TSIOBufferReaderFree(transform_ctx->output_reader);
+    if (transform_ctx->output.reader)
+        TSIOBufferReaderFree(transform_ctx->output.reader);
 
-    if (transform_ctx->output_buffer)
-        TSIOBufferDestroy(transform_ctx->output_buffer);
+    if (transform_ctx->output.buffer)
+        TSIOBufferDestroy(transform_ctx->output.buffer);
 
     TSfree(transform_ctx);
 }

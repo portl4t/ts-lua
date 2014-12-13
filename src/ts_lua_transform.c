@@ -20,7 +20,7 @@
 #include "ts_lua_util.h"
 
 
-static int ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx);
+static int ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *transform_ctx);
 
 
 int
@@ -28,11 +28,11 @@ ts_lua_transform_entry(TSCont contp, TSEvent event, void *edata)
 {
     TSVIO       input_vio;
 
-    ts_lua_transform_ctx *transform_ctx = (ts_lua_transform_ctx*)TSContDataGet(contp);
+    ts_lua_http_transform_ctx *transform_ctx = (ts_lua_http_transform_ctx*)TSContDataGet(contp);
 
     if (TSVConnClosedGet(contp)) {
         TSContDestroy(contp);
-        ts_lua_destroy_transform_ctx(transform_ctx);
+        ts_lua_destroy_http_transform_ctx(transform_ctx);
         return 0;
     }
 
@@ -57,19 +57,17 @@ ts_lua_transform_entry(TSCont contp, TSEvent event, void *edata)
 }
 
 static int
-ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
+ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *transform_ctx)
 {
     TSVConn             output_conn;
     TSVIO               input_vio;
     TSIOBufferReader    input_reader;
     TSIOBufferBlock     blk;
-    int64_t             towrite, blk_len, upstream_done, avail, left;
-    int64_t             inlen, outlen;
-    void                *ptr;
+    int64_t             toread, towrite, blk_len, upstream_done, input_avail, n;
     const char          *start;
     const char          *res;
     size_t              res_len;
-    int                 ret, eos;
+    int                 ret, eos, write_down;
 
     lua_State           *L;
     TSMutex             mtxp;
@@ -81,74 +79,62 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
     input_vio = TSVConnWriteVIOGet(contp);
     input_reader = TSVIOReaderGet(input_vio);
 
-    if (!transform_ctx->output_buffer) {
-        transform_ctx->output_buffer = TSIOBufferCreate();
-        transform_ctx->output_reader = TSIOBufferReaderAlloc(transform_ctx->output_buffer);
-
-        outlen = INT64_MAX;
-        inlen = TSVIONBytesGet(input_vio);
-
-        if (inlen != INT64_MAX) {
-            ptr = TS_LUA_TRANSFORM_CL_KEY(transform_ctx);
-            lua_pushlightuserdata(L, ptr);
-            lua_rawget(L, LUA_GLOBALSINDEX);        // get transform length set handler
-
-            if (lua_isfunction(L, -1)) {
-                lua_pushnumber(L, inlen);
-                if (lua_pcall(L, 1, 1, 0)) {
-                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(L, -1));
-                }
-
-                outlen = lua_tonumber(L, -1);
-            }
-
-            lua_pop(L, 1);
-        }
-
-        transform_ctx->output_vio = TSVConnWrite(output_conn, contp, transform_ctx->output_reader, outlen);
+    if (!transform_ctx->output.buffer) {
+        transform_ctx->output.buffer = TSIOBufferCreate();
+        transform_ctx->output.reader = TSIOBufferReaderAlloc(transform_ctx->output.buffer);
+        transform_ctx->upstream_bytes = TSVIONBytesGet(input_vio);
+        transform_ctx->downstream_bytes = INT64_MAX;
     }
 
     if (!TSVIOBufferGet(input_vio)) {
-        TSVIONBytesSet(transform_ctx->output_vio, transform_ctx->total);
-        TSVIOReenable(transform_ctx->output_vio);
+        if (transform_ctx->output.vio) {
+            TSVIONBytesSet(transform_ctx->output.vio, transform_ctx->total);
+            TSVIOReenable(transform_ctx->output.vio);
+        }
+
         return 1;
     }
 
-    if (transform_ctx->eos) {
-        return 1;
-    }
-
-    left = towrite = TSVIONTodoGet(input_vio);
+    input_avail = TSIOBufferReaderAvail(input_reader);
     upstream_done = TSVIONDoneGet(input_vio);
-    avail = TSIOBufferReaderAvail(input_reader);
-    eos = 0;
+    toread = TSVIONTodoGet(input_vio);
 
-    if (left <= avail)
+    if (toread == input_avail) {        // upstream finished
         eos = 1;
 
-    if (towrite > avail)
-        towrite = avail;
+    } else {
+        eos = 0;
+    }
 
-    TSMutexLock(mtxp);
+    write_down = 0;
+    towrite = input_avail;
 
     blk = TSIOBufferReaderStart(input_reader);
 
-    do {
+    TSMutexLock(mtxp);
+
+    while (blk && towrite > 0) {
         start = TSIOBufferBlockReadStart(blk, input_reader, &blk_len);
+        if (start == NULL || blk_len == 0) {
+            blk = TSIOBufferBlockNext(blk);
+            continue;
+        }
 
         lua_pushlightuserdata(L, transform_ctx);
-        lua_rawget(L, LUA_GLOBALSINDEX);                /* push function */
+        lua_rawget(L, LUA_GLOBALSINDEX);                    /* push function */
 
         if (towrite > blk_len) {
             lua_pushlstring(L, start, (size_t)blk_len);
             towrite -= blk_len;
+
         } else {
             lua_pushlstring(L, start, (size_t)towrite);
             towrite = 0;
         }
 
         if (!towrite && eos) {
-            lua_pushinteger(L, 1);                          /* second param, not finish */ 
+            lua_pushinteger(L, 1);                          /* second param, finished */ 
+
         } else {
             lua_pushinteger(L, 0);                          /* second param, not finish */ 
         }
@@ -160,9 +146,18 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
         ret = lua_tointeger(L, -1);                         /* 0 is not finished, 1 is finished */
         res = lua_tolstring(L, -2, &res_len);
 
-        if (res && res_len) {
-            TSIOBufferWrite(transform_ctx->output_buffer, res, res_len);
+        if (res && res_len > 0) {
+            if (!transform_ctx->output.vio) {
+                n = transform_ctx->downstream_bytes;
+                if (ret)
+                    n = res_len;
+
+                transform_ctx->output.vio = TSVConnWrite(output_conn, contp, transform_ctx->output.reader, n);
+            }
+
+            TSIOBufferWrite(transform_ctx->output.buffer, res, res_len);
             transform_ctx->total += res_len;
+            write_down = 1;
         }
 
         lua_pop(L, 2);
@@ -173,23 +168,31 @@ ts_lua_transform_handler(TSCont contp, ts_lua_transform_ctx *transform_ctx)
         }
 
         blk = TSIOBufferBlockNext(blk);
-
-    } while (blk && towrite > 0);
+    }
 
     TSMutexUnlock(mtxp);
 
-    TSIOBufferReaderConsume(input_reader, avail);
-    TSVIONDoneSet(input_vio, upstream_done + avail);
+    TSIOBufferReaderConsume(input_reader, input_avail);
+    TSVIONDoneSet(input_vio, upstream_done + input_avail);
 
-    if (eos) {
-        transform_ctx->eos = 1;
-        TSVIONBytesSet(transform_ctx->output_vio, transform_ctx->total);
-        TSVIOReenable(transform_ctx->output_vio);
+    if (eos && !transform_ctx->output.vio)
+        transform_ctx->output.vio = TSVConnWrite(output_conn, contp, transform_ctx->output.reader, 0);
+
+    if (write_down || eos)
+        TSVIOReenable(transform_ctx->output.vio);
+
+    if (toread > input_avail) {     // upstream not finished.
+        if (eos) {
+            TSVIONBytesSet(transform_ctx->output.vio, transform_ctx->total);
+            TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_EOS, input_vio);
+
+        } else {
+            TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_WRITE_READY, input_vio);
+        }
+
+    } else {                        // upstream is finished.
+        TSVIONBytesSet(transform_ctx->output.vio, transform_ctx->total);
         TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_WRITE_COMPLETE, input_vio);
-
-    } else {
-        TSVIOReenable(transform_ctx->output_vio);
-        TSContCall(TSVIOContGet(input_vio), TS_EVENT_VCONN_WRITE_READY, input_vio);
     }
 
     return 1;

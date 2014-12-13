@@ -76,12 +76,11 @@ static int
 ts_lua_add_hook(lua_State *L)
 {
     int                     type;
-    int                     entry, n;
-    void                    *ptr;
+    int                     entry;
 
     TSVConn                 connp;
     ts_lua_http_ctx         *http_ctx;
-    ts_lua_transform_ctx    *transform_ctx;
+    ts_lua_http_transform_ctx    *transform_ctx;
 
     http_ctx = ts_lua_get_http_ctx(L);
 
@@ -125,10 +124,7 @@ ts_lua_add_hook(lua_State *L)
 
         case TS_LUA_REQUEST_TRANSFORM:
         case TS_LUA_RESPONSE_TRANSFORM:
-            transform_ctx = (ts_lua_transform_ctx*)TSmalloc(sizeof(ts_lua_transform_ctx));
-            memset(transform_ctx, 0, sizeof(ts_lua_transform_ctx));
-            transform_ctx->hctx = http_ctx;
-
+            transform_ctx = ts_lua_create_http_transform_ctx(http_ctx);
             connp = TSTransformCreate(ts_lua_transform_entry, http_ctx->txnp);
             TSContDataSet(connp, transform_ctx);
 
@@ -142,15 +138,6 @@ ts_lua_add_hook(lua_State *L)
             lua_pushlightuserdata(L, transform_ctx);
             lua_pushvalue(L, 2);
             lua_rawset(L, LUA_GLOBALSINDEX);            // this is the transform handler
-
-            n = lua_gettop(L);
-            if (n >= 3 && lua_isfunction(L, 3)) {       // set transform length
-                ptr = TS_LUA_TRANSFORM_CL_KEY(transform_ctx);
-                lua_pushlightuserdata(L, ptr);
-                lua_pushvalue(L, 3);
-                lua_rawset(L, LUA_GLOBALSINDEX);         // this is the transform length set handler
-            }
-
             break;
 
         default:
