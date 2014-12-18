@@ -19,6 +19,7 @@
 
 #include "ts_lua_util.h"
 #include "ts_lua_remap.h"
+#include "ts_lua_constant.h"
 #include "ts_lua_client_request.h"
 #include "ts_lua_server_request.h"
 #include "ts_lua_server_response.h"
@@ -276,6 +277,7 @@ ts_lua_inject_ts_api(lua_State *L)
     lua_newtable(L);
 
     ts_lua_inject_remap_api(L);
+    ts_lua_inject_constant_api(L);
 
     ts_lua_inject_client_request_api(L);
     ts_lua_inject_server_request_api(L);

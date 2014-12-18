@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <tcl.h>
 
@@ -54,12 +55,16 @@
 #define TS_LUA_MEM_ALIGN(size)                  (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
 #define TS_LUA_ALIGN_COUNT(size)                (size / TS_LUA_MIN_ALIGN)
 
-#define TS_LUA_TRANSFORM_CL_KEY(x)              (x + 0x01)
-
 #define TS_LUA_MAKE_VAR_ITEM(X)                 {X, #X}
 #define ee(...)     fprintf(stderr, "Lua *** %s: ", __func__); \
                             fprintf(stderr, __VA_ARGS__);   \
                             fprintf(stderr, " @ %s line %d.\n", __FILE__, __LINE__)
+
+
+typedef struct {
+    int64_t nvar;
+    char    *svar;
+} ts_lua_var64_item;
 
 
 /* for http config or cntl var */
