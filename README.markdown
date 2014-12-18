@@ -5,7 +5,7 @@ ts-lua - Embed the Power of Lua into TrafficServer.
 This module is under active development and is production ready.
 
 ## Version
-This document describes ts-lua [v0.1.4](https://github.com/portl4t/ts-lua/tags) released on 2 May 2014.
+This document describes ts-lua [v0.1.5](https://github.com/portl4t/ts-lua/tags) released on 18 December 2014.
 
 ## Google group
 https://groups.google.com/forum/#!forum/ts-lua
@@ -59,6 +59,12 @@ https://github.com/portl4t/ts-lua/wiki/Doc
 
 **step3**: modify remap.config and restart the trafficserver
 
+## ChangeLog
+https://github.com/portl4t/ts-lua/wiki/ChangeLog
+
+## History
+* [v0.1.5](https://github.com/portl4t/ts-lua/releases/tag/v0.1.5), 2014-12-18
+* [v0.1.4](https://github.com/portl4t/ts-lua/releases/tag/v0.1.4), 2014-05-02
 
 ## See Also
 * [ts-fetcher](https://github.com/portl4t/ts-fetcher) http fetcher for ats, implement as plugin with c
