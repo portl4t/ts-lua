@@ -169,7 +169,7 @@ ts_lua_client_response_header_set(lua_State *L)
 
         if (field_loc) {
             TSMimeHdrFieldValueStringSet(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
-                                         field_loc, 0, val, val_len);
+                                         field_loc, -1, val, val_len);
             TSHandleMLocRelease(http_ctx->client_response_bufp, http_ctx->client_response_hdrp, field_loc);
 
         } else if (TSMimeHdrFieldCreateNamed(http_ctx->client_response_bufp, http_ctx->client_response_hdrp,
