@@ -1,5 +1,7 @@
+
 *.sh
 *.so
 *.lo
+*.swp
 
 src/test_*
