@@ -363,9 +363,7 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
     size = TS_LUA_MEM_ALIGN(sizeof(ts_lua_http_ctx));
     http_ctx = TSmalloc(size);
 
-    for (i = 0; i < TS_LUA_ALIGN_COUNT(size); i++) {
-        ((void**)http_ctx)[i] = 0;
-    }
+    memset(http_ctx, 0, size);
 
     http_ctx->lua = lua_newthread(L);
     l = http_ctx->lua;
@@ -463,9 +461,7 @@ ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
     size = TS_LUA_MEM_ALIGN(sizeof(ts_lua_http_intercept_ctx));
     ictx = TSmalloc(size);
 
-    for (i = 0; i < TS_LUA_ALIGN_COUNT(size); i++) {
-        ((void**)ictx)[i] = 0;
-    }
+    memset(ictx, 0, size);
 
     ictx->lua = lua_newthread(L);
 
