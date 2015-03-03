@@ -75,14 +75,15 @@ ts_lua_inject_hook_variables(lua_State *L)
 static int
 ts_lua_add_hook(lua_State *L)
 {
-    int                     type;
-    int                     entry;
-
-    TSVConn                 connp;
-    ts_lua_http_ctx         *http_ctx;
-    ts_lua_http_transform_ctx    *transform_ctx;
+    int                         type;
+    int                         entry;
+    TSVConn                     connp;
+    ts_lua_http_ctx             *http_ctx;
+    ts_lua_http_transform_ctx   *transform_ctx;
+    ts_lua_coroutine            *crt;
 
     http_ctx = ts_lua_get_http_ctx(L);
+    crt = &http_ctx->coroutine;
 
     entry = lua_tointeger(L, 1);            // get hook id
 
@@ -93,31 +94,31 @@ ts_lua_add_hook(lua_State *L)
     switch (entry) {
 
         case TS_LUA_HOOK_POST_REMAP:
-            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_POST_REMAP_HOOK, http_ctx->main_contp);
+            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_POST_REMAP_HOOK, crt->main_contp);
             lua_pushvalue(L, 2);
             lua_setglobal(L, TS_LUA_FUNCTION_POST_REMAP);
             break;
 
         case TS_LUA_HOOK_CACHE_LOOKUP_COMPLETE:
-            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_CACHE_LOOKUP_COMPLETE_HOOK, http_ctx->main_contp);
+            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_CACHE_LOOKUP_COMPLETE_HOOK, crt->main_contp);
             lua_pushvalue(L, 2);
             lua_setglobal(L, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
             break;
 
         case TS_LUA_HOOK_SEND_REQUEST_HDR:
-            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, http_ctx->main_contp);
+            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, crt->main_contp);
             lua_pushvalue(L, 2);
             lua_setglobal(L, TS_LUA_FUNCTION_SEND_REQUEST);
             break;
 
         case TS_LUA_HOOK_READ_RESPONSE_HDR:
-            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_READ_RESPONSE_HDR_HOOK, http_ctx->main_contp);
+            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_READ_RESPONSE_HDR_HOOK, crt->main_contp);
             lua_pushvalue(L, 2);
             lua_setglobal(L, TS_LUA_FUNCTION_READ_RESPONSE);
             break;
 
         case TS_LUA_HOOK_SEND_RESPONSE_HDR:
-            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, http_ctx->main_contp);
+            TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, crt->main_contp);
             lua_pushvalue(L, 2);
             lua_setglobal(L, TS_LUA_FUNCTION_SEND_RESPONSE);
             break;

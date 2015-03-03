@@ -329,6 +329,28 @@ ts_lua_get_instance_conf(lua_State *L)
 }
 
 void
+ts_lua_set_coroutine(lua_State *L, ts_lua_coroutine *crt)
+{
+    lua_pushliteral(L, "__ts_coroutine");
+    lua_pushlightuserdata(L, crt);
+    lua_rawset(L, LUA_GLOBALSINDEX);
+}
+
+ts_lua_coroutine *
+ts_lua_get_coroutine(lua_State *L)
+{
+    ts_lua_coroutine  *crt;
+
+    lua_pushliteral(L, "__ts_coroutine");
+    lua_rawget(L, LUA_GLOBALSINDEX);
+    crt = lua_touserdata(L, -1);
+
+    lua_pop(L, 1);                      // pop the coroutine out
+
+    return crt;
+}
+
+void
 ts_lua_set_http_ctx(lua_State *L, ts_lua_http_ctx *ctx)
 {
     lua_pushliteral(L, "__ts_http_ctx");
@@ -353,20 +375,16 @@ ts_lua_get_http_ctx(lua_State *L)
 ts_lua_http_ctx *
 ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 {
-    int                 i, size;
     ts_lua_http_ctx     *http_ctx;
     lua_State           *L;
     lua_State           *l;
 
     L = main_ctx->lua;
 
-    size = TS_LUA_MEM_ALIGN(sizeof(ts_lua_http_ctx));
-    http_ctx = TSmalloc(size);
+    http_ctx = TSmalloc(sizeof(ts_lua_http_ctx));
+    memset(http_ctx, 0, sizeof(ts_lua_http_ctx));
 
-    memset(http_ctx, 0, size);
-
-    http_ctx->lua = lua_newthread(L);
-    l = http_ctx->lua;
+    l = http_ctx->coroutine.lua = lua_newthread(L);
 
     lua_pushlightuserdata(L, conf);
     lua_rawget(L, LUA_REGISTRYINDEX);
@@ -387,8 +405,8 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
     http_ctx->mctx = main_ctx;
     http_ctx->instance_conf = conf;
 
-    ts_lua_set_http_ctx(http_ctx->lua, http_ctx);
-    ts_lua_create_context_table(http_ctx->lua);
+    ts_lua_set_http_ctx(http_ctx->coroutine.lua, http_ctx);
+    ts_lua_create_context_table(http_ctx->coroutine.lua);
 
     return http_ctx;
 }
@@ -423,6 +441,8 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
         TSMBufferDestroy(http_ctx->cached_response_bufp);
     }
 
+    ts_lua_async_destroy_chain(&http_ctx->coroutine.async_chain);
+
     luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, http_ctx->ref);
     TSfree(http_ctx);
 }
@@ -452,16 +472,13 @@ ts_lua_get_http_intercept_ctx(lua_State *L)
 ts_lua_http_intercept_ctx *
 ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
 {
-    int                 i, size;
     lua_State           *L;
     ts_lua_http_intercept_ctx   *ictx;
 
-    L = http_ctx->lua;
+    L = http_ctx->coroutine.lua;
 
-    size = TS_LUA_MEM_ALIGN(sizeof(ts_lua_http_intercept_ctx));
-    ictx = TSmalloc(size);
-
-    memset(ictx, 0, size);
+    ictx = TSmalloc(sizeof(ts_lua_http_intercept_ctx));
+    memset(ictx, 0, sizeof(ts_lua_http_intercept_ctx));
 
     ictx->lua = lua_newthread(L);
 
@@ -540,7 +557,7 @@ ts_lua_create_http_transform_ctx(ts_lua_http_ctx *http_ctx)
     memset(transform_ctx, 0, sizeof(ts_lua_http_transform_ctx));
 
     transform_ctx->hctx = http_ctx;
-    ts_lua_set_http_transform_ctx(http_ctx->lua, transform_ctx);
+    ts_lua_set_http_transform_ctx(http_ctx->coroutine.lua, transform_ctx);
 
     return transform_ctx;
 }
@@ -563,24 +580,28 @@ ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
 int
 ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
 {
-    TSHttpTxn           txnp = (TSHttpTxn)edata;
+    TSHttpTxn           txnp;
     int                 ret;
     lua_State           *l;
     ts_lua_http_ctx     *http_ctx;
     ts_lua_main_ctx     *main_ctx;
+    ts_lua_coroutine    *crt;
 
     http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
     main_ctx = http_ctx->mctx;
 
+    crt = &http_ctx->coroutine;
+    l = crt->lua;
+
+    txnp = http_ctx->txnp;
     ret = 0;
-    l = http_ctx->lua;
 
     TSMutexLock(main_ctx->mutexp);
+    ts_lua_set_coroutine(l, crt);
 
     switch (event) {
 
         case TS_EVENT_HTTP_POST_REMAP:
-
             lua_getglobal(l, TS_LUA_FUNCTION_POST_REMAP);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
@@ -594,7 +615,6 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
 
         case TS_EVENT_HTTP_CACHE_LOOKUP_COMPLETE:
-
             lua_getglobal(l, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
@@ -608,7 +628,6 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
 
         case TS_EVENT_HTTP_SEND_REQUEST_HDR:
-
             lua_getglobal(l, TS_LUA_FUNCTION_SEND_REQUEST);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
@@ -622,7 +641,6 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
 
         case TS_EVENT_HTTP_READ_RESPONSE_HDR:
-
             lua_getglobal(l, TS_LUA_FUNCTION_READ_RESPONSE);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
@@ -636,15 +654,17 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
 
         case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-
             lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
+                ret = lua_resume(l, 0);
+/*
                 if (lua_pcall(l, 0, 1, 0)) {
                     fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
                 }
 
                 ret = lua_tointeger(l, -1);
+*/
             }
 
             break;
@@ -654,17 +674,25 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             TSContDestroy(contp);
             break;
 
+        case TS_EVENT_COROUTINE_CONT:
+            ret = lua_resume(l, 0);
+            break;
+
         default:
             break;
     }
 
     TSMutexUnlock(main_ctx->mutexp);
 
-    if (ret) {
+
+    if (ret == 0) {
+        TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+
+    } else if (ret < 0) {
         TSHttpTxnReenable(txnp, TS_EVENT_HTTP_ERROR);
 
     } else {
-        TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+        // async
     }
 
     return 0;

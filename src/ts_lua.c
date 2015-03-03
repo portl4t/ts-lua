@@ -145,7 +145,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     http_ctx->client_request_url = rri->requestUrl;
     http_ctx->rri = rri;
 
-    l = http_ctx->lua;
+    l = http_ctx->coroutine.lua;
 
     lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
     if (lua_type(l, -1) != LUA_TFUNCTION) {
@@ -155,7 +155,8 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
     contp = TSContCreate(ts_lua_http_cont_handler, NULL);
     TSContDataSet(contp, http_ctx);
-    http_ctx->main_contp = contp;
+
+    http_ctx->coroutine.main_contp = contp;
 
     if (lua_pcall(l, 0, 1, 0) != 0) {
         fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
@@ -165,7 +166,6 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     lua_pop(l, 1);
 
     TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
-
     TSMutexUnlock(main_ctx->mutexp);
 
     return ret;

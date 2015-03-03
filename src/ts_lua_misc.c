@@ -27,7 +27,7 @@ static int ts_lua_sleep(lua_State *L);
 static int ts_lua_say(lua_State *L);
 static int ts_lua_flush(lua_State *L);
 
-static int ts_lua_sleep_cleanup(struct ict_item *item);
+static int ts_lua_sleep_cleanup(ts_lua_async_item *ai);
 static int ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata);
 
 int ts_lua_flush_launch(ts_lua_http_intercept_ctx *ictx);
@@ -92,6 +92,7 @@ ts_lua_error(lua_State *L)
     return 0;
 }
 
+/*
 static int
 ts_lua_sleep(lua_State *L)
 {
@@ -110,6 +111,36 @@ ts_lua_sleep(lua_State *L)
     node = (ts_lua_http_intercept_item*)TSmalloc(sizeof(ts_lua_http_intercept_item));
     TS_LUA_ADD_INTERCEPT_ITEM(ictx, node, contp, ts_lua_sleep_cleanup, action);
     TSContDataSet(contp, node);
+
+    return lua_yield(L, 0);
+}
+*/
+
+static int
+ts_lua_sleep(lua_State *L)
+{
+    int                 sec;
+    TSAction            action;
+    TSCont              contp;
+    ts_lua_async_item   *ai;
+    ts_lua_coroutine    *crt;
+
+    crt = ts_lua_get_coroutine(L);
+    if (crt == NULL)
+        return 0;
+
+    sec = luaL_checknumber(L, 1);
+    if (sec < 1) {
+        sec = 1;
+    }
+
+    contp = TSContCreate(ts_lua_sleep_handler, TSContMutexGet(crt->main_contp));
+    action = TSContSchedule(contp, sec * 1000, TS_THREAD_POOL_DEFAULT);
+
+    ai = ts_lua_async_create_item(crt->main_contp, ts_lua_sleep_cleanup, (void*)action, contp);
+    ts_lua_async_push_item(&crt->async_chain, ai);
+
+    TSContDataSet(contp, ai);
 
     return lua_yield(L, 0);
 }
@@ -153,7 +184,7 @@ ts_lua_flush(lua_State *L)
     return 0;
 }
 
-
+/*
 static int
 ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
 {
@@ -179,6 +210,34 @@ ts_lua_sleep_cleanup(struct ict_item *item)
 
     TSContDestroy(item->contp);
     item->deleted = 1;
+
+    return 0;
+}
+*/
+
+static int
+ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
+{
+    ts_lua_async_item   *ai;
+
+    ai = TSContDataGet(contp);
+    ts_lua_sleep_cleanup(ai);
+
+    TSContCall(ai->pcontp, TS_EVENT_COROUTINE_CONT, 0);
+
+    return 0;
+}
+
+static int
+ts_lua_sleep_cleanup(ts_lua_async_item *ai)
+{
+    if (ai->data) {
+        TSActionCancel((TSAction)ai->data);
+        ai->data = NULL;
+    }
+
+    TSContDestroy(ai->contp);
+    ai->deleted = 1;
 
     return 0;
 }

@@ -72,7 +72,7 @@ ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *transform_ctx)
     lua_State           *L;
     TSMutex             mtxp;
 
-    L = transform_ctx->hctx->lua;
+    L = transform_ctx->hctx->coroutine.lua;
     mtxp = transform_ctx->hctx->mctx->mutexp;
 
     output_conn = TSTransformOutputVConnGet(contp);
