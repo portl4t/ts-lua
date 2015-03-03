@@ -92,29 +92,6 @@ ts_lua_error(lua_State *L)
     return 0;
 }
 
-/*
-static int
-ts_lua_sleep(lua_State *L)
-{
-    int             sec;
-    TSAction        action;
-    TSCont          contp;
-    ts_lua_http_intercept_item  *node;
-    ts_lua_http_intercept_ctx   *ictx;
-
-    ictx = ts_lua_get_http_intercept_ctx(L);
-    sec = luaL_checknumber(L, 1);
-
-    contp = TSContCreate(ts_lua_sleep_handler, TSContMutexGet(ictx->contp));
-    action = TSContSchedule(contp, sec*1000, TS_THREAD_POOL_DEFAULT);
-
-    node = (ts_lua_http_intercept_item*)TSmalloc(sizeof(ts_lua_http_intercept_item));
-    TS_LUA_ADD_INTERCEPT_ITEM(ictx, node, contp, ts_lua_sleep_cleanup, action);
-    TSContDataSet(contp, node);
-
-    return lua_yield(L, 0);
-}
-*/
 
 static int
 ts_lua_sleep(lua_State *L)
@@ -184,43 +161,14 @@ ts_lua_flush(lua_State *L)
     return 0;
 }
 
-/*
-static int
-ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
-{
-    ts_lua_http_intercept_item *item = TSContDataGet(contp);
-
-    ts_lua_sleep_cleanup(item);
-
-    TSContCall(item->ictx->contp, event, 0);
-
-    return 0;
-}
-
-static int
-ts_lua_sleep_cleanup(struct ict_item *item)
-{
-    if (item->deleted)
-        return 0;
-
-    if (item->data) {
-        TSActionCancel((TSAction)item->data);
-        item->data = NULL;
-    }
-
-    TSContDestroy(item->contp);
-    item->deleted = 1;
-
-    return 0;
-}
-*/
-
 static int
 ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
 {
     ts_lua_async_item   *ai;
 
     ai = TSContDataGet(contp);
+    ai->data = NULL;
+
     ts_lua_sleep_cleanup(ai);
 
     TSContCall(ai->pcontp, TS_EVENT_COROUTINE_CONT, 0);
