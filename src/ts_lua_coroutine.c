@@ -16,10 +16,20 @@
   limitations under the License.
 */
 
-#include "ts_lua_async.h"
+#include "ts_lua_coroutine.h"
+
+static inline void ts_lua_async_push_item(ts_lua_async_item **head, ts_lua_async_item *node);
+
+inline void
+ts_lua_coroutine_assign(ts_lua_coroutine *dst, ts_lua_coroutine *src)
+{
+    dst->mctx = src->mctx;
+    dst->lua = src->lua;
+    dst->ref = src->ref;
+}
 
 inline ts_lua_async_item *
-ts_lua_async_create_item(TSCont parent, async_clean func, void *d, TSCont cont)
+ts_lua_async_create_item(TSCont cont, async_clean func, void *d, ts_lua_cont_info *ci)
 {
     ts_lua_async_item   *ai;
 
@@ -27,16 +37,19 @@ ts_lua_async_create_item(TSCont parent, async_clean func, void *d, TSCont cont)
     if (ai == NULL)
         return NULL;
 
+    ai->cinfo = ci;
+
     ai->cleanup = func;
     ai->data = d;
     ai->contp = cont;
-    ai->pcontp = parent;
     ai->deleted = 0;
+
+    ts_lua_async_push_item(&ci->async_chain, ai);
 
     return ai;
 }
 
-inline void
+static inline void
 ts_lua_async_push_item(ts_lua_async_item **head, ts_lua_async_item *node)
 {
     node->next = *head;
@@ -46,8 +59,9 @@ ts_lua_async_push_item(ts_lua_async_item **head, ts_lua_async_item *node)
 inline void
 ts_lua_async_destroy_item(ts_lua_async_item *node)
 {
-    if (node->cleanup && !node->deleted)
+    if (node->cleanup && !node->deleted) {
         node->cleanup(node);
+    }
 
     TSfree(node);
 }

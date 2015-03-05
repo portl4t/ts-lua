@@ -20,25 +20,51 @@
 #define _TS_LUA_ASYNC_H
 
 #include <stdio.h>
+#include <lua.h>
 #include <ts/ts.h>
 
 
 struct async_item;
 typedef int (*async_clean)(struct async_item *item);
 
+/* main context*/
+typedef struct {
+    lua_State           *lua;
+    TSMutex             mutexp;
+    int                 gref;
+} ts_lua_main_ctx;
+
+/* coroutine */
+typedef struct {
+    ts_lua_main_ctx     *mctx;
+    lua_State           *lua;           // lua_thread
+    int                 ref;            // lua_thread reference
+} ts_lua_coroutine;
+
+/* continuation info */
+typedef struct {
+    ts_lua_coroutine    routine;
+    TSCont              contp;          // continuation for the routine
+    TSMutex             mutex;          // mutex for continuation
+    struct async_item   *async_chain;   // async_item list
+} ts_lua_cont_info;
+
+
+/* asynchronous item */
 typedef struct async_item {
     struct async_item   *next;
+    ts_lua_cont_info    *cinfo;
 
-    TSCont              contp;
-    TSCont              pcontp;
-    void                *data;
-    async_clean         cleanup;
+    TSCont              contp;          // continuation for the async operation
+    void                *data;          // private data
 
+    async_clean         cleanup;        // cleanup function
     int                 deleted:1;
 } ts_lua_async_item;
 
-inline ts_lua_async_item * ts_lua_async_create_item(TSCont parent, async_clean func, void *d, TSCont cont);
-inline void ts_lua_async_push_item(ts_lua_async_item **head, ts_lua_async_item *node);
+
+inline void ts_lua_coroutine_assign(ts_lua_coroutine *dst, ts_lua_coroutine *src);
+inline ts_lua_async_item * ts_lua_async_create_item(TSCont cont, async_clean func, void *d, ts_lua_cont_info *ci);
 inline void ts_lua_async_destroy_item(ts_lua_async_item *node);
 
 void ts_lua_async_destroy_chain(ts_lua_async_item **head);

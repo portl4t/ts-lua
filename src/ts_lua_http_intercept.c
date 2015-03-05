@@ -138,7 +138,7 @@ ts_lua_http_intercept_process(ts_lua_http_ctx *http_ctx, TSVConn conn)
     TSMutex         mtxp;
     ts_lua_http_intercept_ctx   *ictx;
 
-    mtxp = http_ctx->mctx->mutexp;
+    mtxp = http_ctx->cinfo.routine.mctx->mutexp;
     TSMutexLock(mtxp);
 
     ictx = ts_lua_create_http_intercept_ctx(http_ctx);

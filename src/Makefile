@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o .lo
 
 COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -g
-INC_PATH = -Imodules -I/usr/include/trafficserver
+INC_PATH = -Imodules -I/home/quehan/opt/master/include
 LIB_PATH = -L/usr/local/lib -lssl -llua-5.1 -lpcre -ltcl
 
 SHARED_OBJS = ts_lua.lo ts_lua_string.lo ts_lua_client_request.lo  ts_lua_client_response.lo ts_lua_server_request.lo \
@@ -9,7 +9,7 @@ SHARED_OBJS = ts_lua.lo ts_lua_string.lo ts_lua_client_request.lo  ts_lua_client
 	      ts_lua_hook.lo ts_lua_context.lo ts_lua_misc.lo ts_lua_http.lo ts_lua_transform.lo ts_lua_log.lo \
 	      ts_lua_http_intercept.lo ts_lua_regex.lo ts_lua_http_config.lo ts_lua_crypto.lo ts_lua_hash_table.lo \
 	      ts_lua_mgmt.lo ts_lua_http_cntl.lo ts_lua_shared_dict.lo ts_lua_package.lo ts_lua_constant.lo \
-	      ts_lua_async.lo
+	      ts_lua_coroutine.lo ts_lua_fetch.lo ts_lua_io.lo
 
 ALL_OBJS = $(SHARED_OBJS)
 

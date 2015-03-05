@@ -119,16 +119,14 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int                 ret;
-    uint64_t            req_id;
-
-    TSCont              contp;
-    lua_State           *l;
-
-    ts_lua_main_ctx     *main_ctx;
-    ts_lua_http_ctx     *http_ctx;
-
-    ts_lua_instance_conf     *instance_conf;
+    int                     ret;
+    uint64_t                req_id;
+    TSCont                  contp;
+    lua_State               *l;
+    ts_lua_main_ctx         *main_ctx;
+    ts_lua_http_ctx         *http_ctx;
+    ts_lua_cont_info        *ci;
+    ts_lua_instance_conf    *instance_conf;
 
     instance_conf = (ts_lua_instance_conf*)ih;
     req_id = __sync_fetch_and_add(&ts_lua_http_next_id, 1);
@@ -145,7 +143,8 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     http_ctx->client_request_url = rri->requestUrl;
     http_ctx->rri = rri;
 
-    l = http_ctx->coroutine.lua;
+    ci = &http_ctx->cinfo;
+    l = ci->routine.lua;
 
     lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
     if (lua_type(l, -1) != LUA_TFUNCTION) {
@@ -156,7 +155,8 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     contp = TSContCreate(ts_lua_http_cont_handler, NULL);
     TSContDataSet(contp, http_ctx);
 
-    http_ctx->coroutine.main_contp = contp;
+    ci->contp = contp;
+    ci->mutex = TSContMutexGet((TSCont)rh);
 
     if (lua_pcall(l, 0, 1, 0) != 0) {
         fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));

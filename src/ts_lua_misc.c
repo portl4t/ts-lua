@@ -100,10 +100,10 @@ ts_lua_sleep(lua_State *L)
     TSAction            action;
     TSCont              contp;
     ts_lua_async_item   *ai;
-    ts_lua_coroutine    *crt;
+    ts_lua_cont_info    *ci;
 
-    crt = ts_lua_get_coroutine(L);
-    if (crt == NULL)
+    ci = ts_lua_get_cont_info(L);
+    if (ci == NULL)
         return 0;
 
     sec = luaL_checknumber(L, 1);
@@ -111,11 +111,10 @@ ts_lua_sleep(lua_State *L)
         sec = 1;
     }
 
-    contp = TSContCreate(ts_lua_sleep_handler, TSContMutexGet(crt->main_contp));
+    contp = TSContCreate(ts_lua_sleep_handler, ci->mutex);
     action = TSContSchedule(contp, sec * 1000, TS_THREAD_POOL_DEFAULT);
 
-    ai = ts_lua_async_create_item(crt->main_contp, ts_lua_sleep_cleanup, (void*)action, contp);
-    ts_lua_async_push_item(&crt->async_chain, ai);
+    ai = ts_lua_async_create_item(contp, ts_lua_sleep_cleanup, (void*)action, ci);
 
     TSContDataSet(contp, ai);
 
@@ -165,13 +164,14 @@ static int
 ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
 {
     ts_lua_async_item   *ai;
+    ts_lua_cont_info    *ci;
 
     ai = TSContDataGet(contp);
+    ci = ai->cinfo;
+
     ai->data = NULL;
 
-    ts_lua_sleep_cleanup(ai);
-
-    TSContCall(ai->pcontp, TS_EVENT_COROUTINE_CONT, 0);
+    TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, 0);
 
     return 0;
 }
@@ -185,8 +185,6 @@ ts_lua_sleep_cleanup(ts_lua_async_item *ai)
     }
 
     TSContDestroy(ai->contp);
-    ai->deleted = 1;
-
     return 0;
 }
 

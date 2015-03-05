@@ -33,7 +33,7 @@
 #include <ts/ts.h>
 #include <ts/experimental.h>
 #include <ts/remap.h>
-#include "ts_lua_async.h"
+#include "ts_lua_coroutine.h"
 
 #define TS_LUA_FUNCTION_REMAP                   "do_remap"
 #define TS_LUA_FUNCTION_POST_REMAP              "do_post_remap"
@@ -124,25 +124,9 @@ typedef struct {
 } ts_lua_instance_conf;
 
 
-/* global lua state struct */
-typedef struct {
-    lua_State   *lua;
-    TSMutex     mutexp;
-    int         gref;
-} ts_lua_main_ctx;
-
-
-/* coroutine struct */
-typedef struct {
-    lua_State               *lua;
-    TSCont                  main_contp;
-    ts_lua_async_item       *async_chain;
-} ts_lua_coroutine;
-
-
 /* lua state for http request */
 typedef struct {
-    ts_lua_coroutine    coroutine;
+    ts_lua_cont_info        cinfo;
 
     TSHttpTxn   txnp;
     TSMBuffer   client_request_bufp;
@@ -162,13 +146,10 @@ typedef struct {
     TSMBuffer   cached_response_bufp;
     TSMLoc      cached_response_hdrp;
 
-    ts_lua_main_ctx         *mctx;
     TSRemapRequestInfo      *rri;
     ts_lua_instance_conf    *instance_conf;
 
     int         intercept_type;
-    int         ref;
-
 } ts_lua_http_ctx;
 
 
@@ -179,7 +160,11 @@ typedef struct {
 } ts_lua_io_handle;
 
 typedef struct {
+    ts_lua_cont_info    cinfo;
     ts_lua_io_handle    output;
+
+    TSIOBuffer          res_buffer;
+    TSIOBufferReader    res_reader;
 
     ts_lua_http_ctx     *hctx;
     int64_t             upstream_bytes;
