@@ -38,6 +38,7 @@
 #include "ts_lua_shared_dict.h"
 #include "ts_lua_package.h"
 #include "ts_lua_fetch.h"
+#include "ts_lua_http_intercept.h"
 
 static lua_State * ts_lua_new_state();
 static void ts_lua_init_registry(lua_State *L);
@@ -293,6 +294,7 @@ ts_lua_inject_ts_api(lua_State *L)
     ts_lua_inject_hook_api(L);
 
     ts_lua_inject_http_api(L);
+    ts_lua_inject_intercept_api(L);
     ts_lua_inject_misc_api(L);
     ts_lua_inject_regex_api(L);
     ts_lua_inject_crypto_api(L);
@@ -479,60 +481,58 @@ ts_lua_get_http_intercept_ctx(lua_State *L)
     return ictx;
 }
 
+
 ts_lua_http_intercept_ctx *
 ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
 {
-/*
-    lua_State           *L;
+    lua_State                   *L;
     ts_lua_http_intercept_ctx   *ictx;
-    L = http_ctx->coroutine.lua;
+    ts_lua_cont_info            *hci;
+    ts_lua_coroutine            *crt;
+
+    hci = &http_ctx->cinfo;
+    L = hci->routine.lua;
 
     ictx = TSmalloc(sizeof(ts_lua_http_intercept_ctx));
     memset(ictx, 0, sizeof(ts_lua_http_intercept_ctx));
 
-    ictx->lua = lua_newthread(L);
-
-    ictx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    ictx->mctx = http_ctx->mctx;
     ictx->hctx = http_ctx;
+    crt = &ictx->cinfo.routine;
 
-    ts_lua_set_http_intercept_ctx(ictx->lua, ictx);
+    crt->mctx = hci->routine.mctx;
+    crt->lua = lua_newthread(L);
+    crt->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    ts_lua_set_http_intercept_ctx(crt->lua, ictx);
+
     return ictx;
-*/
-    return NULL;
 }
 
 void 
 ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx)
 {
-    ts_lua_main_ctx   *main_ctx;
-    struct ict_item   *node, *snode;
+    ts_lua_cont_info    *ci;
+    ts_lua_coroutine    *crt;
 
-    main_ctx = ictx->mctx;
+    ci = &ictx->cinfo;
+    crt = &ci->routine;
 
-    if (ictx->net_vc)
+    if (ictx->net_vc) {
         TSVConnClose(ictx->net_vc);
+    }
 
     TS_LUA_RELEASE_IO_HANDLE((&ictx->input));
     TS_LUA_RELEASE_IO_HANDLE((&ictx->output));
 
-    node = ictx->ict_chain;
+    ts_lua_async_destroy_chain(&ci->async_chain);
 
-    while (node) {
-
-        if (node->cleanup)
-            node->cleanup(node);
-
-        snode = node;
-        node = node->next;
-
-        TSfree(snode);
+    if (ci->contp) {
+        TSContDestroy(ci->contp);
     }
 
-    luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, ictx->ref);
+    luaL_unref(crt->lua, LUA_REGISTRYINDEX, crt->ref);
+
     TSfree(ictx);
-    return;
 }
 
 void

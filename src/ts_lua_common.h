@@ -173,40 +173,21 @@ typedef struct {
 } ts_lua_http_transform_ctx;
 
 
-/* for intercept */
-struct ict_item;
-struct ict_ctx;
-typedef int (*ict_clean)(struct ict_item *item);
+typedef struct {
+    ts_lua_cont_info    cinfo;
 
-typedef struct ict_item {
-    struct ict_item *next;
-    struct ict_ctx  *ictx;
-
-    TSCont      contp;
-    ict_clean   cleanup;
-    void        *data;
-    int         deleted:1;
-} ts_lua_http_intercept_item;
-
-typedef struct ict_ctx {
-    lua_State           *lua;
-    TSCont              contp;
     ts_lua_io_handle    input;
     ts_lua_io_handle    output;
-    TSVConn             net_vc;
 
-    ts_lua_main_ctx     *mctx;
+    TSVConn             net_vc;
     ts_lua_http_ctx     *hctx;
 
-    struct ict_item     *ict_chain;
-
     int64_t             to_flush;
-    int                 ref;
-
     int                 recv_complete:1;
     int                 send_complete:1;
     int                 all_ready:1;
 } ts_lua_http_intercept_ctx;
+
 
 #define TS_LUA_RELEASE_IO_HANDLE(ih) do {   \
     if (ih->reader) {                       \
@@ -218,15 +199,6 @@ typedef struct ict_ctx {
         ih->buffer = NULL;                  \
     }                                       \
 } while (0)
-
-#define TS_LUA_ADD_INTERCEPT_ITEM(ictx, item, contp, func, d)   \
-            {   item->cleanup = func;  \
-                item->data = d;  \
-                item->ictx = ictx;  \
-                item->contp = contp;  \
-                item->deleted = 0;  \
-                item->next = ictx->ict_chain;   \
-                ictx->ict_chain = item;}
 
 #endif
 
