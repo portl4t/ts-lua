@@ -14,21 +14,38 @@
 --  See the License for the specific language governing permissions and
 --  limitations under the License.
 
-require 'os'
 
-function send_data()
-    local nt = os.time()..' Zheng.\n'
-    local resp =  'HTTP/1.0 200 OK\r\n' ..
-                  'Server: ATS/3.2.0\r\n' ..
-                  'Content-Type: text/plain\r\n' ..
-                  'Content-Length: ' .. string.format('%d', string.len(nt)) .. '\r\n\r\n' ..
-                  nt
-    ts.sleep(3)
-    ts.say(resp)
+function send_response()
+    ts.client_response.header['Rhost'] = ts.ctx['rhost']
+    ts.sleep(1)
+
+    return 0
 end
 
+function read_response()
+    local rs = ts.server_response.header['Server']
+    if rs ~= nil then
+        ts.server_response.header['Rserver'] = string.reverse(rs)
+    end
+
+    ts.sleep(1)
+
+    return 0
+end
+
+
 function do_remap()
-    ts.http.intercept(send_data)
+    local req_host = ts.client_request.header.Host
+
+    if req_host == nil then
+        return 0
+    end
+
+    ts.ctx['rhost'] = string.reverse(req_host)
+
+    ts.hook(TS_LUA_HOOK_READ_RESPONSE_HDR, read_response)
+    ts.hook(TS_LUA_HOOK_SEND_RESPONSE_HDR, send_response)
+
     return 0
 end
 

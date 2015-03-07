@@ -643,11 +643,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             lua_getglobal(l, TS_LUA_FUNCTION_POST_REMAP);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
-                if (lua_pcall(l, 0, 1, 0)) {
-                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-                }
-
-                ret = lua_tointeger(l, -1);
+                ret = lua_resume(l, 0);
             }
 
             break;
@@ -656,11 +652,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             lua_getglobal(l, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
-                if (lua_pcall(l, 0, 1, 0)) {
-                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-                }
-
-                ret = lua_tointeger(l, -1);
+                ret = lua_resume(l, 0);
             }
 
             break;
@@ -669,11 +661,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             lua_getglobal(l, TS_LUA_FUNCTION_SEND_REQUEST);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
-                if (lua_pcall(l, 0, 1, 0)) {
-                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-                }
-
-                ret = lua_tointeger(l, -1);
+                ret = lua_resume(l, 0);
             }
 
             break;
@@ -682,11 +670,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             lua_getglobal(l, TS_LUA_FUNCTION_READ_RESPONSE);
 
             if (lua_type(l, -1) == LUA_TFUNCTION) {
-                if (lua_pcall(l, 0, 1, 0)) {
-                    fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
-                }
-
-                ret = lua_tointeger(l, -1);
+                ret = lua_resume(l, 0);
             }
 
             break;
@@ -717,7 +701,6 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
 
     TSMutexUnlock(main_ctx->mutexp);
 
-
     if (ret == 0) {
         TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
 
@@ -725,7 +708,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
         TSHttpTxnReenable(txnp, TS_EVENT_HTTP_ERROR);
 
     } else {
-        // async
+        // wait for async
     }
 
     return 0;
