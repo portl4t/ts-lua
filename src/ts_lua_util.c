@@ -454,6 +454,7 @@ ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
     }
 
     ts_lua_async_destroy_chain(&ci->async_chain);
+    TSContDestroy(ci->contp);
 
     luaL_unref(main_ctx->lua, LUA_REGISTRYINDEX, crt->ref);
     TSfree(http_ctx);
@@ -562,10 +563,13 @@ ts_lua_http_transform_ctx *
 ts_lua_create_http_transform_ctx(ts_lua_http_ctx *http_ctx, TSVConn connp)
 {
     lua_State                   *L;
+    ts_lua_cont_info            *hci;
     ts_lua_cont_info            *ci;
+    ts_lua_coroutine            *crt;
     ts_lua_http_transform_ctx   *transform_ctx;
 
-    L = http_ctx->cinfo.routine.lua;
+    hci = &http_ctx->cinfo;
+    L = hci->routine.lua;
 
     transform_ctx = (ts_lua_http_transform_ctx*)TSmalloc(sizeof(ts_lua_http_transform_ctx));
     memset(transform_ctx, 0, sizeof(ts_lua_http_transform_ctx));
@@ -576,7 +580,11 @@ ts_lua_create_http_transform_ctx(ts_lua_http_ctx *http_ctx, TSVConn connp)
     ci = &transform_ctx->cinfo;
     ci->contp = connp;
     ci->mutex = TSContMutexGet((TSCont)http_ctx->txnp);
-    ts_lua_coroutine_assign(&ci->routine, &http_ctx->cinfo.routine);
+
+    crt = &ci->routine;
+    crt->mctx = hci->routine.mctx;
+    crt->lua = lua_newthread(L);
+    crt->ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     lua_pushlightuserdata(L, transform_ctx);
     lua_pushvalue(L, 2);
@@ -589,11 +597,13 @@ void
 ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
 {
     ts_lua_cont_info        *ci;
+    ts_lua_coroutine        *crt;
     
     if (!transform_ctx)
         return;
 
     ci = &transform_ctx->cinfo;
+    crt = &ci->routine;
 
     if (transform_ctx->output.reader)
         TSIOBufferReaderFree(transform_ctx->output.reader);
@@ -610,6 +620,8 @@ ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
     ts_lua_async_destroy_chain(&ci->async_chain);
 
     TSContDestroy(ci->contp);
+
+    luaL_unref(crt->lua, LUA_REGISTRYINDEX, crt->ref);
     TSfree(transform_ctx);
 }
 
@@ -686,7 +698,6 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
 
         case TS_EVENT_HTTP_TXN_CLOSE:
             ts_lua_destroy_http_ctx(http_ctx);
-            TSContDestroy(contp);
             break;
 
         case TS_EVENT_COROUTINE_CONT:

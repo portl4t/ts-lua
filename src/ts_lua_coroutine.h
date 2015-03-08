@@ -29,15 +29,15 @@ typedef int (*async_clean)(struct async_item *item);
 
 /* main context*/
 typedef struct {
-    lua_State           *lua;
-    TSMutex             mutexp;
-    int                 gref;
+    lua_State           *lua;           // lua_State
+    TSMutex             mutexp;         // mutex for lua_State
+    int                 gref;           // ref for lua_thread
 } ts_lua_main_ctx;
 
 /* coroutine */
 typedef struct {
     ts_lua_main_ctx     *mctx;
-    lua_State           *lua;           // lua_thread
+    lua_State           *lua;           // derived lua_thread
     int                 ref;            // lua_thread reference
 } ts_lua_coroutine;
 

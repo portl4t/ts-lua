@@ -187,7 +187,7 @@ launch:
                 if (ret)
                     l = res_len;
 
-                transform_ctx->output.vio = TSVConnWrite(output_conn, contp, transform_ctx->output.reader, l);
+                transform_ctx->output.vio = TSVConnWrite(output_conn, contp, transform_ctx->output.reader, l);      // HttpSM go on
             }
 
             TSIOBufferWrite(transform_ctx->output.buffer, res, res_len);
