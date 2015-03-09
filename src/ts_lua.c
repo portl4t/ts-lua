@@ -119,14 +119,14 @@ TSRemapDeleteInstance(void* ih)
 TSRemapStatus
 TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 {
-    int                     ret;
-    uint64_t                req_id;
-    TSCont                  contp;
-    lua_State               *l;
-    ts_lua_main_ctx         *main_ctx;
-    ts_lua_http_ctx         *http_ctx;
-    ts_lua_cont_info        *ci;
-    ts_lua_instance_conf    *instance_conf;
+    int                         ret;
+    uint64_t                    req_id;
+    TSCont                      contp;
+    lua_State                   *l;
+    ts_lua_main_ctx             *main_ctx;
+    ts_lua_http_ctx             *http_ctx;
+    ts_lua_cont_info            *ci;
+    ts_lua_instance_conf        *instance_conf;
 
     instance_conf = (ts_lua_instance_conf*)ih;
     req_id = __sync_fetch_and_add(&ts_lua_http_next_id, 1);
@@ -146,28 +146,27 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     ci = &http_ctx->cinfo;
     l = ci->routine.lua;
 
-    lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
-    if (lua_type(l, -1) != LUA_TFUNCTION) {
-        TSMutexUnlock(main_ctx->mutexp);
-        return TSREMAP_NO_REMAP;
-    }
-
     contp = TSContCreate(ts_lua_http_cont_handler, NULL);
     TSContDataSet(contp, http_ctx);
 
     ci->contp = contp;
     ci->mutex = TSContMutexGet((TSCont)rh);
 
+    // push do_remap function on the stack, and no async operation should exist here.
+    lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
+
     if (lua_pcall(l, 0, 1, 0) != 0) {
-        fprintf(stderr, "lua_pcall failed: %s\n", lua_tostring(l, -1));
+        ee("lua_pcall failed: %s", lua_tostring(l, -1));
+        ret = TSREMAP_NO_REMAP;
+
+    } else {
+        ret = lua_tointeger(l, -1);
     }
 
-    ret = lua_tointeger(l, -1);
-    lua_pop(l, 1);
+    lua_pop(l, 1);      // pop the result
 
-    TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
     TSMutexUnlock(main_ctx->mutexp);
+    TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
 
     return ret;
 }
-

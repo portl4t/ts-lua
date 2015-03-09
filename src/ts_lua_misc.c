@@ -82,11 +82,11 @@ ts_lua_error(lua_State *L)
 static int
 ts_lua_sleep(lua_State *L)
 {
-    int                 sec;
-    TSAction            action;
-    TSCont              contp;
-    ts_lua_async_item   *ai;
-    ts_lua_cont_info    *ci;
+    int                     sec;
+    TSAction                action;
+    TSCont                  contp;
+    ts_lua_async_item       *ai;
+    ts_lua_cont_info        *ci;
 
     ci = ts_lua_get_cont_info(L);
     if (ci == NULL)
@@ -101,7 +101,6 @@ ts_lua_sleep(lua_State *L)
     action = TSContSchedule(contp, sec * 1000, TS_THREAD_POOL_DEFAULT);
 
     ai = ts_lua_async_create_item(contp, ts_lua_sleep_cleanup, (void*)action, ci);
-
     TSContDataSet(contp, ai);
 
     return lua_yield(L, 0);
@@ -110,13 +109,14 @@ ts_lua_sleep(lua_State *L)
 static int
 ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
 {
-    ts_lua_async_item   *ai;
-    ts_lua_cont_info    *ci;
+    ts_lua_async_item       *ai;
+    ts_lua_cont_info        *ci;
 
     ai = TSContDataGet(contp);
     ci = ai->cinfo;
 
     ai->data = NULL;
+    ts_lua_sleep_cleanup(ai);
 
     TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, 0);
 
@@ -132,6 +132,7 @@ ts_lua_sleep_cleanup(ts_lua_async_item *ai)
     }
 
     TSContDestroy(ai->contp);
+    ai->deleted = 1;
+
     return 0;
 }
-

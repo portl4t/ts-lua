@@ -21,6 +21,8 @@
 
 #include <stdio.h>
 #include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 #include <ts/ts.h>
 
 
@@ -29,16 +31,16 @@ typedef int (*async_clean)(struct async_item *item);
 
 /* main context*/
 typedef struct {
-    lua_State           *lua;           // lua_State
-    TSMutex             mutexp;         // mutex for lua_State
-    int                 gref;           // ref for lua_thread
+    lua_State           *lua;           // basic lua vm, injected
+    TSMutex             mutexp;         // mutex for lua vm
+    int                 gref;           // reference for lua vm self, in reg table
 } ts_lua_main_ctx;
 
 /* coroutine */
 typedef struct {
     ts_lua_main_ctx     *mctx;
     lua_State           *lua;           // derived lua_thread
-    int                 ref;            // lua_thread reference
+    int                 ref;            // reference for lua_thread, in reg table
 } ts_lua_coroutine;
 
 /* continuation info */
@@ -63,10 +65,10 @@ typedef struct async_item {
 } ts_lua_async_item;
 
 
-inline void ts_lua_coroutine_assign(ts_lua_coroutine *dst, ts_lua_coroutine *src);
 inline ts_lua_async_item * ts_lua_async_create_item(TSCont cont, async_clean func, void *d, ts_lua_cont_info *ci);
 inline void ts_lua_async_destroy_item(ts_lua_async_item *node);
 
-void ts_lua_async_destroy_chain(ts_lua_async_item **head);
+inline void ts_lua_async_destroy_chain(ts_lua_async_item **head);
+inline void ts_lua_release_cont_info(ts_lua_cont_info *ci);
 
 #endif

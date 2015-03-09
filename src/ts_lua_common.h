@@ -54,14 +54,11 @@
 #define TS_LUA_MAX_OVEC_SIZE                    (3 * 32)
 #define TS_LUA_MAX_RESIDENT_PCRE                64
 
-#define TS_LUA_MIN_ALIGN                        sizeof(void*)
-#define TS_LUA_MEM_ALIGN(size)                  (((size) + ((TS_LUA_MIN_ALIGN) - 1)) & ~((TS_LUA_MIN_ALIGN) - 1))
-#define TS_LUA_ALIGN_COUNT(size)                (size / TS_LUA_MIN_ALIGN)
-
 #define TS_LUA_MAKE_VAR_ITEM(X)                 {X, #X}
+
 #define ee(...)     fprintf(stderr, "Lua *** %s: ", __func__); \
                             fprintf(stderr, __VA_ARGS__);   \
-                            fprintf(stderr, " @ %s line %d.\n", __FILE__, __LINE__)
+                            fprintf(stderr, " @%s:%d\n", __FILE__, __LINE__)
 
 
 typedef struct {

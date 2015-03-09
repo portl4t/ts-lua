@@ -20,13 +20,6 @@
 
 static inline void ts_lua_async_push_item(ts_lua_async_item **head, ts_lua_async_item *node);
 
-inline void
-ts_lua_coroutine_assign(ts_lua_coroutine *dst, ts_lua_coroutine *src)
-{
-    dst->mctx = src->mctx;
-    dst->lua = src->lua;
-    dst->ref = src->ref;
-}
 
 inline ts_lua_async_item *
 ts_lua_async_create_item(TSCont cont, async_clean func, void *d, ts_lua_cont_info *ci)
@@ -66,7 +59,7 @@ ts_lua_async_destroy_item(ts_lua_async_item *node)
     TSfree(node);
 }
 
-void
+inline void
 ts_lua_async_destroy_chain(ts_lua_async_item **head)
 {
     ts_lua_async_item   *node, *next;
@@ -76,7 +69,24 @@ ts_lua_async_destroy_chain(ts_lua_async_item **head)
     while (node) {
         next = node->next;
         ts_lua_async_destroy_item(node);
-
         node = next;
+    }
+}
+
+inline void
+ts_lua_release_cont_info(ts_lua_cont_info *ci)
+{
+    ts_lua_coroutine    *crt;
+
+    crt = &ci->routine;
+
+    ts_lua_async_destroy_chain(&ci->async_chain);
+
+    if (ci->contp) {
+        TSContDestroy(ci->contp);
+    }
+
+    if (crt->lua) {
+        luaL_unref(crt->lua, LUA_REGISTRYINDEX, crt->ref);
     }
 }

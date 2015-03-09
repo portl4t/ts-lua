@@ -65,6 +65,7 @@ ts_lua_context_get(lua_State *L)
 
         lua_pushlstring(L, key, key_len);
         lua_rawget(L, -2);
+
     } else {
         lua_pushnil(L);
     }
@@ -91,4 +92,3 @@ ts_lua_context_set(lua_State *L)
 
     return 0;
 }
-
