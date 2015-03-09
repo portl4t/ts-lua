@@ -179,6 +179,7 @@ typedef struct {
     ts_lua_http_ctx     *hctx;
 
     int64_t             to_flush;
+    int                 reuse:1;
     int                 recv_complete:1;
     int                 send_complete:1;
     int                 all_ready:1;

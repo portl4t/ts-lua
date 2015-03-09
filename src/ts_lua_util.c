@@ -180,7 +180,6 @@ ts_lua_add_module(ts_lua_instance_conf *conf, ts_lua_main_ctx *arr, int n, int a
 
             if (lua_pcall(L, 1, 1, 0)) {
                 ee("lua_pcall %s failed: %s", conf->script, lua_tostring(L, -1));
-                fprintf(stderr, "[%s] lua_pcall %s failed: %s\n", __FUNCTION__, conf->script, lua_tostring(L, -1));
                 lua_pop(L, 1);
                 TSMutexUnlock(arr[i].mutexp);
                 return -1;
@@ -487,17 +486,14 @@ ts_lua_get_http_intercept_ctx(lua_State *L)
     return ictx;
 }
 
-
 ts_lua_http_intercept_ctx *
-ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
+ts_lua_create_http_intercept_ctx(lua_State *L, ts_lua_http_ctx *http_ctx, int reuse)
 {
-    lua_State                   *L;
     ts_lua_http_intercept_ctx   *ictx;
     ts_lua_cont_info            *hci;
     ts_lua_coroutine            *crt;
 
     hci = &http_ctx->cinfo;
-    L = hci->routine.lua;
 
     ictx = TSmalloc(sizeof(ts_lua_http_intercept_ctx));
     memset(ictx, 0, sizeof(ts_lua_http_intercept_ctx));
@@ -508,6 +504,17 @@ ts_lua_create_http_intercept_ctx(ts_lua_http_ctx *http_ctx)
     crt->mctx = hci->routine.mctx;
     crt->lua = lua_newthread(L);
     crt->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    if (reuse == 0) {
+        // Todo: replace the global table for crt->lua
+
+    } else {
+        ictx->reuse = 1;
+    }
+
+    lua_pushvalue(L, 1);                // push the intercept function
+    lua_xmove(L, crt->lua, 1);          // move the function to the new lua_thread
+    lua_setglobal(crt->lua, TS_LUA_FUNCTION_HTTP_INTERCEPT);    // l[G]['do_intercept'] = function
 
     ts_lua_set_http_intercept_ctx(crt->lua, ictx);
 
@@ -706,8 +713,8 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
             break;
 
         default:                // coroutine failed
-            rc = -1;
             ee("lua_resume failed: %s", lua_tostring(l, -1));
+            rc = -1;
             lua_pop(l, 1);
             break;
     }
