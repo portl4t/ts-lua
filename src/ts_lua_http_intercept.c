@@ -20,11 +20,6 @@
 #include "ts_lua_util.h"
 #include "ts_lua_http_intercept.h"
 
-typedef enum {
-    TS_LUA_TYPE_HTTP_INTERCEPT = 0,
-    TS_LUA_TYPE_HTTP_SERVER_INTERCEPT = 1
-} TSInterceptType;
-
 static int ts_lua_http_intercept(lua_State *L);
 static int ts_lua_http_server_intercept(lua_State *L);
 static int ts_lua_http_intercept_entry(TSCont contp, TSEvent event, void *edata);
@@ -292,7 +287,6 @@ ts_lua_http_intercept_run_coroutine(ts_lua_http_intercept_ctx *ictx, int n)
     ret = lua_resume(L, n);
 
     switch (ret) {
-
         case 0:              // finished
             avail = TSIOBufferReaderAvail(ictx->output.reader);
             done = TSVIONDoneGet(ictx->output.vio);
@@ -477,4 +471,3 @@ ts_lua_flush_cleanup(ts_lua_async_item *ai)
 
     return 0;
 }
-
