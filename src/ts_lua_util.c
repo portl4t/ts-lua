@@ -558,11 +558,11 @@ ts_lua_get_http_transform_ctx(lua_State *L)
 ts_lua_http_transform_ctx *
 ts_lua_create_http_transform_ctx(ts_lua_http_ctx *http_ctx, TSVConn connp)
 {
-    lua_State                   *L;
-    ts_lua_cont_info            *hci;
-    ts_lua_cont_info            *ci;
-    ts_lua_coroutine            *crt;
-    ts_lua_http_transform_ctx   *transform_ctx;
+    lua_State                       *L;
+    ts_lua_cont_info                *hci;
+    ts_lua_cont_info                *ci;
+    ts_lua_coroutine                *crt;
+    ts_lua_http_transform_ctx       *transform_ctx;
 
     hci = &http_ctx->cinfo;
     L = hci->routine.lua;
@@ -599,17 +599,8 @@ ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
 
     ci = &transform_ctx->cinfo;
 
-    if (transform_ctx->output.reader)
-        TSIOBufferReaderFree(transform_ctx->output.reader);
-
-    if (transform_ctx->output.buffer)
-        TSIOBufferDestroy(transform_ctx->output.buffer);
-
-    if (transform_ctx->res_reader)
-        TSIOBufferReaderFree(transform_ctx->res_reader);
-
-    if (transform_ctx->res_buffer)
-        TSIOBufferDestroy(transform_ctx->res_buffer);
+    TS_LUA_RELEASE_IO_HANDLE((&transform_ctx->output));
+    TS_LUA_RELEASE_IO_HANDLE((&transform_ctx->reserved));
 
     ts_lua_release_cont_info(ci);
 
@@ -638,7 +629,6 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
     rc = ret = 0;
 
     TSMutexLock(main_ctx->mutexp);
-
     ts_lua_set_cont_info(l, ci);
 
     switch (event) {

@@ -158,10 +158,9 @@ typedef struct {
 
 typedef struct {
     ts_lua_cont_info    cinfo;
-    ts_lua_io_handle    output;
 
-    TSIOBuffer          res_buffer;
-    TSIOBufferReader    res_reader;
+    ts_lua_io_handle    output;
+    ts_lua_io_handle    reserved;
 
     ts_lua_http_ctx     *hctx;
     int64_t             upstream_bytes;

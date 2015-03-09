@@ -81,11 +81,9 @@ ts_lua_add_hook(lua_State *L)
     ts_lua_http_ctx             *http_ctx;
     ts_lua_http_transform_ctx   *transform_ctx;
     ts_lua_cont_info            *ci;
-    ts_lua_coroutine            *crt;
 
     http_ctx = ts_lua_get_http_ctx(L);
     ci = &http_ctx->cinfo;
-    crt = &ci->routine;
 
     entry = lua_tointeger(L, 1);            // get hook id
 
@@ -136,6 +134,7 @@ ts_lua_add_hook(lua_State *L)
             } else {
                 TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_RESPONSE_TRANSFORM_HOOK, connp);
             }
+
             break;
 
         default:
@@ -144,4 +143,3 @@ ts_lua_add_hook(lua_State *L)
 
     return 0;
 }
-
