@@ -42,7 +42,7 @@
 #define TS_LUA_FUNCTION_READ_RESPONSE           "do_read_response"
 #define TS_LUA_FUNCTION_SEND_RESPONSE           "do_send_response"
 
-#define TS_EVENT_COROUTINE_CONT                 200000
+#define TS_EVENT_COROUTINE_CONT                 20000
 
 #define TS_LUA_DEBUG_TAG                        "ts_lua"
 

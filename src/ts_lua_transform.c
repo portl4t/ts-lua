@@ -24,12 +24,14 @@ static int ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *tra
 
 
 int
-ts_lua_transform_entry(TSCont contp, TSEvent event, void *edata)
+ts_lua_transform_entry(TSCont contp, TSEvent ev, void *edata)
 {
-    int             n;
-    TSVIO           input_vio;
+    int                         n, event;
+    TSVIO                       input_vio;
+    ts_lua_http_transform_ctx	*transform_ctx;
 
-    ts_lua_http_transform_ctx *transform_ctx = (ts_lua_http_transform_ctx*)TSContDataGet(contp);
+    event = (int)ev;
+    transform_ctx = (ts_lua_http_transform_ctx*)TSContDataGet(contp);
 
     if (TSVConnClosedGet(contp)) {
         ts_lua_destroy_http_transform_ctx(transform_ctx);
@@ -37,6 +39,7 @@ ts_lua_transform_entry(TSCont contp, TSEvent event, void *edata)
     }
 
     n = 0;
+
     switch (event) {
 
         case TS_EVENT_ERROR:

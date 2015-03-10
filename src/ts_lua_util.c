@@ -615,16 +615,17 @@ ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
 }
 
 int
-ts_lua_http_cont_handler(TSCont contp, TSEvent event, void *edata)
+ts_lua_http_cont_handler(TSCont contp, TSEvent ev, void *edata)
 {
     TSHttpTxn               txnp;
-    int                     ret, rc, n, t;
+    int                     event, ret, rc, n, t;
     lua_State               *l;
     ts_lua_http_ctx         *http_ctx;
     ts_lua_main_ctx         *main_ctx;
     ts_lua_cont_info        *ci;
     ts_lua_coroutine        *crt;
 
+    event = (int)ev;
     http_ctx = (ts_lua_http_ctx*)TSContDataGet(contp);
     ci = &http_ctx->cinfo;
     crt = &ci->routine;

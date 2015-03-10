@@ -79,7 +79,6 @@ ts_lua_add_hook(lua_State *L)
     int                         entry;
     TSVConn                     connp;
     ts_lua_http_ctx             *http_ctx;
-    ts_lua_http_transform_ctx   *transform_ctx;
     ts_lua_cont_info            *ci;
 
     http_ctx = ts_lua_get_http_ctx(L);
@@ -126,7 +125,7 @@ ts_lua_add_hook(lua_State *L)
         case TS_LUA_REQUEST_TRANSFORM:
         case TS_LUA_RESPONSE_TRANSFORM:
             connp = TSTransformCreate(ts_lua_transform_entry, http_ctx->txnp);
-            transform_ctx = ts_lua_create_http_transform_ctx(http_ctx, connp);
+            ts_lua_create_http_transform_ctx(http_ctx, connp);
 
             if (entry == TS_LUA_REQUEST_TRANSFORM) {
                 TSHttpTxnHookAdd(http_ctx->txnp, TS_HTTP_REQUEST_TRANSFORM_HOOK, connp);

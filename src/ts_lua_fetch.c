@@ -363,8 +363,9 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
 }
 
 static int
-ts_lua_fetch_handler(TSCont contp, TSEvent event, void *edata)
+ts_lua_fetch_handler(TSCont contp, TSEvent ev, void *edata)
 {
+    int                         event;
     char                        *from;
     int64_t                     n, wavail;
     TSIOBufferBlock             blk;
@@ -372,10 +373,11 @@ ts_lua_fetch_handler(TSCont contp, TSEvent event, void *edata)
     ts_lua_fetch_info           *fi;
     ts_lua_fetch_multi_info     *fmi;
 
+    event = (int)ev;
     fi = TSContDataGet(contp);
     fmi = fi->fmi;
 
-    switch ((int)event) {
+    switch (event) {
 
         case TS_FETCH_EVENT_EXT_HEAD_READY:
         case TS_FETCH_EVENT_EXT_HEAD_DONE:
