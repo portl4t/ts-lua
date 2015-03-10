@@ -72,9 +72,13 @@ ts_lua_fetch(lua_State *L)
     }
 
     /* url */
+    if (!lua_isstring(L, 1)) {
+        return luaL_error(L, "'ts.fetch' first param is not string");
+    }
+
     url = luaL_checklstring(L, 1, &url_len);
 
-    /* misc table */
+    /* replicate misc table */
     if (n >= 2) {
         lua_pushvalue(L, 2);
 
@@ -98,7 +102,7 @@ ts_lua_fetch(lua_State *L)
 
     ts_lua_fetch_one_item(L, url, url_len, fi);
 
-    // pop the misc table
+    // pop the replicated misc table
     lua_pop(L, 1);
 
     ai = ts_lua_async_create_item(contp, ts_lua_fetch_multi_cleanup, fmi, ci);
@@ -161,13 +165,14 @@ ts_lua_fetch_multi(lua_State *L)
         lua_pushnumber(L, 1);
         lua_gettable(L, -2);
 
-        url = luaL_checklstring(L, -1, &url_len);
-        if (url == NULL || url_len == 0) {
+        if (!lua_isstring(L, -1)) {
             ts_lua_destroy_fetch_multi_info(fmi);
             TSContDestroy(contp);
 
             return luaL_error(L, "'ts.fetch_mutli' got invalid table item: url illegal");
         }
+
+        url = luaL_checklstring(L, -1, &url_len);
 
         /* push misc table */
         lua_pushinteger(L, 2);
@@ -194,8 +199,8 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
     TSCont                  contp;
     int                     tb, flags, host_len, rc, hdr, port;
     const char              *method, *key, *value, *body, *opt;
-    size_t                  method_len, key_len, value_len, body_len;
     const char              *addr, *ptr, *host;
+    size_t                  method_len, key_len, value_len, body_len;
     size_t                  addr_len, opt_len, i, left;
     char                    c;
     struct sockaddr_in      clientaddr;
@@ -398,7 +403,7 @@ ts_lua_fetch_handler(TSCont contp, TSEvent event, void *edata)
     }
 
     if (fi->over || fi->failed) {
-        TSContCall(fmi->contp, TS_EVENT_IMMEDIATE, fi);                  // error exist
+        TSContCall(fmi->contp, TS_EVENT_IMMEDIATE, fi);     // error exist
     }
 
     return 0;
@@ -538,9 +543,6 @@ ts_lua_destroy_fetch_multi_info(ts_lua_fetch_multi_info *fmi)
 
         if (fi->reader) {
             TSIOBufferReaderFree(fi->reader);
-        }
-
-        if (fi->buffer) {
             TSIOBufferDestroy(fi->buffer);
         }
 
@@ -560,14 +562,14 @@ ts_lua_fetch_multi_cleanup(ts_lua_async_item *ai)
     ts_lua_fetch_multi_info     *fmi;
 
     if (ai->data) {
-
         fmi = (ts_lua_fetch_multi_info*)ai->data;
-
         ts_lua_destroy_fetch_multi_info(fmi);
 
         ai->data = NULL;
     }
 
     TSContDestroy(ai->contp);
+    ai->deleted = 1;
+
     return 0;
 }
