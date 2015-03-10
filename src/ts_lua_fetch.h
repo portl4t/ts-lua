@@ -21,11 +21,26 @@
 
 #include "ts_lua_common.h"
 
+struct fetch_multi_info;
+
 typedef struct {
-    TSIOBuffer          buffer;
-    TSIOBufferReader    reader;
-    TSFetchSM           fch;
+    TSCont                      contp;
+    struct fetch_multi_info     *fmi;
+
+    TSIOBuffer                  buffer;
+    TSIOBufferReader            reader;
+    TSFetchSM                   fch;
+
+    int                         over:1;
+    int                         failed:1;
 } ts_lua_fetch_info;
+
+typedef struct fetch_multi_info {
+    TSCont                      contp;          // should be destroyed only in cleanup
+    int                         total;
+    int                         done;
+    ts_lua_fetch_info           fiv[0];
+} ts_lua_fetch_multi_info;
 
 void ts_lua_inject_fetch_api(lua_State *L);
 
