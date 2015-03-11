@@ -401,8 +401,9 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
     http_ctx = TSmalloc(sizeof(ts_lua_http_ctx));
     memset(http_ctx, 0, sizeof(ts_lua_http_ctx));
 
+    // create coroutine for http_ctx
     crt = &http_ctx->cinfo.routine;
-    l = crt->lua = lua_newthread(L);
+    l = lua_newthread(L);
 
     lua_pushlightuserdata(L, conf);
     lua_rawget(L, LUA_REGISTRYINDEX);           // L[REG][conf] = l
@@ -418,7 +419,9 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 
     lua_replace(l, LUA_GLOBALSINDEX);
 
+    // init coroutine
     crt->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    crt->lua = l;
     crt->mctx = main_ctx;
 
     http_ctx->instance_conf = conf;
@@ -428,7 +431,6 @@ ts_lua_create_http_ctx(ts_lua_main_ctx *main_ctx, ts_lua_instance_conf *conf)
 
     return http_ctx;
 }
-
 
 void
 ts_lua_destroy_http_ctx(ts_lua_http_ctx* http_ctx)
@@ -487,8 +489,10 @@ ts_lua_get_http_intercept_ctx(lua_State *L)
 }
 
 ts_lua_http_intercept_ctx *
-ts_lua_create_http_intercept_ctx(lua_State *L, ts_lua_http_ctx *http_ctx, int reuse)
+ts_lua_create_http_intercept_ctx(lua_State *L, ts_lua_http_ctx *http_ctx, int n)
 {
+    int                         i;
+    lua_State                   *l;
     ts_lua_http_intercept_ctx   *ictx;
     ts_lua_cont_info            *hci;
     ts_lua_coroutine            *crt;
@@ -499,23 +503,24 @@ ts_lua_create_http_intercept_ctx(lua_State *L, ts_lua_http_ctx *http_ctx, int re
     memset(ictx, 0, sizeof(ts_lua_http_intercept_ctx));
 
     ictx->hctx = http_ctx;
-    crt = &ictx->cinfo.routine;
 
+    // create lua_thread
+    l = lua_newthread(L);
+
+    // init the coroutine
+    crt = &ictx->cinfo.routine;
     crt->mctx = hci->routine.mctx;
-    crt->lua = lua_newthread(L);
+    crt->lua = l;
     crt->ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-    if (reuse == 0) {
-        // Todo: replace the global table for crt->lua
+    // Todo: replace the global, context table for crt->lua
 
-    } else {
-        ictx->reuse = 1;
+    // replicate the param
+    for (i = 0; i < n; i++) {
+        lua_pushvalue(L, i+1);
     }
 
-    lua_pushvalue(L, 1);                // push the intercept function
-    lua_xmove(L, crt->lua, 1);          // move the function to the new lua_thread
-    lua_setglobal(crt->lua, TS_LUA_FUNCTION_HTTP_INTERCEPT);    // l[G]['do_intercept'] = function
-
+    lua_xmove(L, l, n);     // move the intercept function and params to the new lua_thread
     ts_lua_set_http_intercept_ctx(crt->lua, ictx);
 
     return ictx;

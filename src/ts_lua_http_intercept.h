@@ -22,8 +22,6 @@
 
 #include "ts_lua_common.h"
 
-#define TS_LUA_FUNCTION_HTTP_INTERCEPT          "do_intercept"
-
 void ts_lua_inject_http_intercept_api(lua_State *L);
 void ts_lua_inject_intercept_api(lua_State *L);
 

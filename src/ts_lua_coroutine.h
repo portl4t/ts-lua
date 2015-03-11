@@ -40,7 +40,7 @@ typedef struct {
 typedef struct {
     ts_lua_main_ctx     *mctx;
     lua_State           *lua;           // derived lua_thread
-    int                 ref;            // reference for lua_thread, in reg table
+    int                 ref;            // reference for lua_thread, in REG Table
 } ts_lua_coroutine;
 
 /* continuation info */

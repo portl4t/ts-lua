@@ -137,6 +137,7 @@ ts_lua_fetch_multi(lua_State *L)
         return luaL_error(L, "'ts.fetch_mutli' requires table as parameter");
     }
 
+    // main continuation handler
     contp = TSContCreate(ts_lua_fetch_multi_handler, ci->mutex);
 
     // Iterate the table
@@ -546,6 +547,9 @@ ts_lua_destroy_fetch_multi_info(ts_lua_fetch_multi_info *fmi)
 
         if (fi->reader) {
             TSIOBufferReaderFree(fi->reader);
+        }
+
+        if (fi->buffer) {
             TSIOBufferDestroy(fi->buffer);
         }
 

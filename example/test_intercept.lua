@@ -16,7 +16,14 @@
 
 require 'os'
 
-function send_data()
+function send_data(a, b, c)
+    print(a)
+    print(b)
+    print(c)
+
+    local res = ts.fetch('http://192.168.131.128:8080/am.txt')
+    print(res.body)
+
     local nt = os.time()..' Zheng.\n'
     local resp =  'HTTP/1.0 200 OK\r\n' ..
                   'Server: ATS/3.2.0\r\n' ..
@@ -24,14 +31,32 @@ function send_data()
                   'Content-Length: ' .. string.format('%d', string.len(nt)) .. '\r\n' ..
                   'Last-Modified: ' .. os.date("%a, %d %b %Y %H:%M:%S GMT", os.time()) .. '\r\n' ..
                   'Connection: keep-alive\r\n' ..
+                  'NG: hell\r\n' ..
                   'Cache-Control: max-age=7200\r\n' ..
                   'Accept-Ranges: bytes\r\n\r\n' ..
                   nt
+    ts.sleep(1)
+
+    local nn = ts.fetch('http://192.168.131.128:8080/naga.txt')
+    print(nn.body)
     ts.say(resp)
 end
 
+function read_response()
+    local ng = ts.server_response.header['NG']
+    if ng ~= nil then
+        print(ng)
+    end
+end
+
 function do_remap()
-    ts.http.intercept(send_data)
+    local inner =  ts.http.is_internal_request()
+    if inner ~= 0 then
+        return 0
+    end
+
+    ts.hook(TS_LUA_HOOK_READ_RESPONSE_HDR, read_response)
+    ts.http.intercept(send_data, 1, 2, 3)
     return 0
 end
 

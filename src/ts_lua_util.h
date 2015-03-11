@@ -48,7 +48,7 @@ void ts_lua_destroy_http_transform_ctx(ts_lua_http_transform_ctx *transform_ctx)
 void ts_lua_set_http_transform_ctx(lua_State *L, ts_lua_http_transform_ctx *tctx);
 ts_lua_http_transform_ctx * ts_lua_get_http_transform_ctx(lua_State *L);
 
-ts_lua_http_intercept_ctx * ts_lua_create_http_intercept_ctx(lua_State *L, ts_lua_http_ctx *http_ctx, int reuse);
+ts_lua_http_intercept_ctx * ts_lua_create_http_intercept_ctx(lua_State *L, ts_lua_http_ctx *http_ctx, int n);
 ts_lua_http_intercept_ctx * ts_lua_get_http_intercept_ctx(lua_State *L);
 void ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx);
 
