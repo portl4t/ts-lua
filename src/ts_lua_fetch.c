@@ -148,6 +148,7 @@ ts_lua_fetch_multi(lua_State *L)
     memset(fmi, 0, sz);
     fmi->total = n;
     fmi->contp = contp;
+    fmi->multi = 1;
 
     for (i = 0; i < n; i++) {
         /* push fetch item */
@@ -510,7 +511,7 @@ ts_lua_fetch_multi_handler(TSCont contp, TSEvent event, void *edata)
     // all finish
     TSMutexLock(lmutex);
 
-    if (fmi->total == 1) {
+    if (fmi->total == 1 && !fmi->multi) {
         ts_lua_fill_one_result(L, fi);
         TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, (void*)1);
 

@@ -37,6 +37,7 @@ typedef struct {
 
 typedef struct fetch_multi_info {
     TSCont                      contp;          // should be destroyed only in cleanup
+    int                         multi;          // invoke from ts.fetch_multi
     int                         total;
     int                         done;
     ts_lua_fetch_info           fiv[0];
