@@ -145,6 +145,7 @@ typedef struct {
 
     TSRemapRequestInfo      *rri;
     ts_lua_instance_conf    *instance_conf;
+    uint32_t                hooks;
 
 } ts_lua_http_ctx;
 

@@ -76,9 +76,11 @@ ts_lua_async_destroy_chain(ts_lua_async_item **head)
 inline void
 ts_lua_release_cont_info(ts_lua_cont_info *ci)
 {
+    ts_lua_main_ctx     *mctx;
     ts_lua_coroutine    *crt;
 
     crt = &ci->routine;
+    mctx = crt->mctx;
 
     ts_lua_async_destroy_chain(&ci->async_chain);
 
@@ -87,6 +89,8 @@ ts_lua_release_cont_info(ts_lua_cont_info *ci)
     }
 
     if (crt->lua) {
+        TSMutexLock(mctx->mutexp);
         luaL_unref(crt->lua, LUA_REGISTRYINDEX, crt->ref);
+        TSMutexUnlock(mctx->mutexp);
     }
 }

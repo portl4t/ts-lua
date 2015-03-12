@@ -89,6 +89,9 @@ ts_lua_http_intercept(lua_State *L)
     TSContDataSet(contp, ictx);
 
     TSHttpTxnIntercept(contp, http_ctx->txnp);
+
+    http_ctx->hooks++;      // needless
+
     return 0;
 }
 
@@ -119,6 +122,9 @@ ts_lua_http_server_intercept(lua_State *L)
     TSContDataSet(contp, ictx);
 
     TSHttpTxnServerIntercept(contp, http_ctx->txnp);
+
+    http_ctx->hooks++;      // needless
+
     return 0;
 }
 
@@ -222,26 +228,15 @@ ts_lua_http_intercept_handler(TSCont contp, TSEvent event, void *edata)
 
     } else {
         mtxp = ictx->cinfo.routine.mctx->mutexp;
-
         n = (intptr_t)edata;
+
         TSMutexLock(mtxp);
         ret = ts_lua_http_intercept_run_coroutine(ictx, n);
+        TSMutexUnlock(mtxp);
     }
 
     if (ret || (ictx->send_complete && ictx->recv_complete)) {
-
-        TSContDestroy(contp);
-
-        if (!mtxp) {
-            mtxp = ictx->cinfo.routine.mctx->mutexp;
-            TSMutexLock(mtxp);
-        }
-
         ts_lua_destroy_http_intercept_ctx(ictx);
-    }
-
-    if (mtxp) {
-        TSMutexUnlock(mtxp);
     }
 
     return 0;

@@ -123,12 +123,14 @@ ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *transform_ctx,
         eos = 0;
     }
 
-    // move to the reserved.buffer
-    TSIOBufferCopy(transform_ctx->reserved.buffer, input_reader, input_avail, 0);
+    if (input_avail > 0) {
+        // move to the reserved.buffer
+        TSIOBufferCopy(transform_ctx->reserved.buffer, input_reader, input_avail, 0);
 
-    // reset input
-    TSIOBufferReaderConsume(input_reader, input_avail);
-    TSVIONDoneSet(input_vio, upstream_done + input_avail);
+        // reset input
+        TSIOBufferReaderConsume(input_reader, input_avail);
+        TSVIONDoneSet(input_vio, upstream_done + input_avail);
+    }
 
     write_down = 0;
     towrite = TSIOBufferReaderAvail(transform_ctx->reserved.reader);

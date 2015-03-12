@@ -165,8 +165,14 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
 
     lua_pop(L, 1);      // pop the result
 
-    TSMutexUnlock(main_ctx->mutexp);
-    TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
+    if (http_ctx->hooks > 0) {
+        TSMutexUnlock(main_ctx->mutexp);
+        TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
+
+    } else {
+        ts_lua_destroy_http_ctx(http_ctx);
+        TSMutexUnlock(main_ctx->mutexp);
+    }
 
     return ret;
 }

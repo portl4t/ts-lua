@@ -625,7 +625,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent ev, void *edata)
 {
     TSHttpTxn               txnp;
     int                     event, ret, rc, n, t;
-    lua_State               *l;
+    lua_State               *L;
     ts_lua_http_ctx         *http_ctx;
     ts_lua_main_ctx         *main_ctx;
     ts_lua_cont_info        *ci;
@@ -637,68 +637,69 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent ev, void *edata)
     crt = &ci->routine;
 
     main_ctx = crt->mctx;
-    l = crt->lua;
+    L = crt->lua;
     txnp = http_ctx->txnp;
 
     rc = ret = 0;
 
+    if (event == TS_EVENT_HTTP_TXN_CLOSE) {
+        ts_lua_destroy_http_ctx(http_ctx);
+        goto last;
+    }
+
     TSMutexLock(main_ctx->mutexp);
-    ts_lua_set_cont_info(l, ci);
+    ts_lua_set_cont_info(L, ci);
 
     switch (event) {
 
         case TS_EVENT_HTTP_POST_REMAP:
-            lua_getglobal(l, TS_LUA_FUNCTION_POST_REMAP);
+            lua_getglobal(L, TS_LUA_FUNCTION_POST_REMAP);
 
-            if (lua_type(l, -1) == LUA_TFUNCTION) {
-                ret = lua_resume(l, 0);
+            if (lua_type(L, -1) == LUA_TFUNCTION) {
+                ret = lua_resume(L, 0);
             }
 
             break;
 
         case TS_EVENT_HTTP_CACHE_LOOKUP_COMPLETE:
-            lua_getglobal(l, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
+            lua_getglobal(L, TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE);
 
-            if (lua_type(l, -1) == LUA_TFUNCTION) {
-                ret = lua_resume(l, 0);
+            if (lua_type(L, -1) == LUA_TFUNCTION) {
+                ret = lua_resume(L, 0);
             }
 
             break;
 
         case TS_EVENT_HTTP_SEND_REQUEST_HDR:
-            lua_getglobal(l, TS_LUA_FUNCTION_SEND_REQUEST);
+            lua_getglobal(L, TS_LUA_FUNCTION_SEND_REQUEST);
 
-            if (lua_type(l, -1) == LUA_TFUNCTION) {
-                ret = lua_resume(l, 0);
+            if (lua_type(L, -1) == LUA_TFUNCTION) {
+                ret = lua_resume(L, 0);
             }
 
             break;
 
         case TS_EVENT_HTTP_READ_RESPONSE_HDR:
-            lua_getglobal(l, TS_LUA_FUNCTION_READ_RESPONSE);
+            lua_getglobal(L, TS_LUA_FUNCTION_READ_RESPONSE);
 
-            if (lua_type(l, -1) == LUA_TFUNCTION) {
-                ret = lua_resume(l, 0);
+            if (lua_type(L, -1) == LUA_TFUNCTION) {
+                ret = lua_resume(L, 0);
             }
 
             break;
 
         case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-            lua_getglobal(l, TS_LUA_FUNCTION_SEND_RESPONSE);
+            lua_getglobal(L, TS_LUA_FUNCTION_SEND_RESPONSE);
 
-            if (lua_type(l, -1) == LUA_TFUNCTION) {
-                ret = lua_resume(l, 0);
+            if (lua_type(L, -1) == LUA_TFUNCTION) {
+                ret = lua_resume(L, 0);
             }
 
             break;
 
-        case TS_EVENT_HTTP_TXN_CLOSE:
-            ts_lua_destroy_http_ctx(http_ctx);
-            break;
-
         case TS_LUA_EVENT_COROUTINE_CONT:
             n = (intptr_t)edata;
-            ret = lua_resume(l, n);         // coroutine go on
+            ret = lua_resume(L, n);         // coroutine go on
 
             break;
 
@@ -708,10 +709,10 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent ev, void *edata)
 
     switch (ret) {
         case 0:                 // coroutine succeed
-            t = lua_gettop(l);
+            t = lua_gettop(L);
             if (t > 0) {
-                rc = lua_tointeger(l, -1);
-                lua_pop(l, 1);
+                rc = lua_tointeger(L, -1);
+                lua_pop(L, 1);
             }
             break;
 
@@ -720,13 +721,15 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent ev, void *edata)
             break;
 
         default:                // coroutine failed
-            ee("lua_resume failed: %s", lua_tostring(l, -1));
+            ee("lua_resume failed: %s", lua_tostring(L, -1));
             rc = -1;
-            lua_pop(l, 1);
+            lua_pop(L, 1);
             break;
     }
 
     TSMutexUnlock(main_ctx->mutexp);
+
+last:
 
     if (rc == 0) {
         TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
