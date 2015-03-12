@@ -426,7 +426,7 @@ ts_lua_flush_wakeup_handler(TSCont contp, TSEvent event, void *edata)
 
     ts_lua_flush_cleanup(ai);
 
-    TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, 0);
+    TSContCall(ci->contp, TS_LUA_EVENT_COROUTINE_CONT, 0);
 
     return 0;
 }

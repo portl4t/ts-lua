@@ -695,7 +695,7 @@ ts_lua_http_cont_handler(TSCont contp, TSEvent ev, void *edata)
             ts_lua_destroy_http_ctx(http_ctx);
             break;
 
-        case TS_EVENT_COROUTINE_CONT:
+        case TS_LUA_EVENT_COROUTINE_CONT:
             n = (intptr_t)edata;
             ret = lua_resume(l, n);         // coroutine go on
 

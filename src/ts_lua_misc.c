@@ -118,7 +118,7 @@ ts_lua_sleep_handler(TSCont contp, TSEvent event, void *edata)
     ai->data = NULL;
     ts_lua_sleep_cleanup(ai);
 
-    TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, 0);
+    TSContCall(ci->contp, TS_LUA_EVENT_COROUTINE_CONT, 0);
 
     return 0;
 }

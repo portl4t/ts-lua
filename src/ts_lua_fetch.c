@@ -24,6 +24,7 @@
 #include "ts_lua_io.h"
 #include "ts_lua_fetch.h"
 
+#define TS_LUA_EVENT_FETCH_OVER         20010
 #define TS_LUA_FETCH_CLIENT_ADDRESS     "127.0.0.1"
 #define TS_LUA_FETCH_CLIENT_PORT        33333
 #define TS_LUA_FETCH_USER_AGENT         "TS Fetcher/1.0"
@@ -407,7 +408,7 @@ ts_lua_fetch_handler(TSCont contp, TSEvent ev, void *edata)
     }
 
     if (fi->over || fi->failed) {
-        TSContCall(fmi->contp, TS_EVENT_IMMEDIATE, fi);     // error exist
+        TSContCall(fmi->contp, TS_LUA_EVENT_FETCH_OVER, fi);     // error exist
     }
 
     return 0;
@@ -514,7 +515,7 @@ ts_lua_fetch_multi_handler(TSCont contp, TSEvent event, void *edata)
 
     if (fmi->total == 1 && !fmi->multi) {
         ts_lua_fill_one_result(L, fi);
-        TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, (void*)1);
+        TSContCall(ci->contp, TS_LUA_EVENT_COROUTINE_CONT, (void*)1);
 
     } else {
         lua_newtable(L);
@@ -524,7 +525,7 @@ ts_lua_fetch_multi_handler(TSCont contp, TSEvent event, void *edata)
             lua_rawseti(L, -2, i);
         }
 
-        TSContCall(ci->contp, TS_EVENT_COROUTINE_CONT, (void*)1);
+        TSContCall(ci->contp, TS_LUA_EVENT_COROUTINE_CONT, (void*)1);
     }
 
     TSMutexUnlock(lmutex);
@@ -557,7 +558,9 @@ ts_lua_destroy_fetch_multi_info(ts_lua_fetch_multi_info *fmi)
             TSFetchDestroy(fi->fch);
         }
 
-        TSContDestroy(fi->contp);
+        if (fi->contp) {
+            TSContDestroy(fi->contp);
+        }
     }
 
     TSfree(fmi);

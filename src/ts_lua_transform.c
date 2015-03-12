@@ -51,7 +51,7 @@ ts_lua_transform_entry(TSCont contp, TSEvent ev, void *edata)
             TSVConnShutdown(TSTransformOutputVConnGet(contp), 0, 1);
             break;
 
-        case TS_EVENT_COROUTINE_CONT:
+        case TS_LUA_EVENT_COROUTINE_CONT:
             n = (intptr_t)edata;
 
         case TS_EVENT_VCONN_WRITE_READY:
@@ -137,7 +137,7 @@ ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *transform_ctx,
     ts_lua_set_cont_info(L, ci);
 
     do {
-        if (event == TS_EVENT_COROUTINE_CONT) {
+        if (event == TS_LUA_EVENT_COROUTINE_CONT) {
             event = 0;
             goto launch;
 
