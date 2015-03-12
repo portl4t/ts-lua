@@ -545,7 +545,7 @@ ts_lua_destroy_http_intercept_ctx(ts_lua_http_intercept_ctx *ictx)
 }
 
 void
-ts_lua_set_http_transform_ctx(lua_State *L, ts_lua_http_transform_ctx  *tctx)
+ts_lua_set_http_transform_ctx(lua_State *L, ts_lua_http_transform_ctx *tctx)
 {
     lua_pushliteral(L, "__ts_http_transform_ctx");
     lua_pushlightuserdata(L, tctx);
@@ -593,6 +593,7 @@ ts_lua_create_http_transform_ctx(ts_lua_http_ctx *http_ctx, TSVConn connp)
     crt->mctx = hci->routine.mctx;
     crt->lua = lua_newthread(L);
     crt->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    ts_lua_set_http_transform_ctx(crt->lua, transform_ctx);
 
     lua_pushlightuserdata(L, transform_ctx);
     lua_pushvalue(L, 2);
