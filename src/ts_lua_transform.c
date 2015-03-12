@@ -84,8 +84,8 @@ ts_lua_transform_handler(TSCont contp, ts_lua_http_transform_ctx *transform_ctx,
     ci = &transform_ctx->cinfo;
     crt = &ci->routine;
 
-    L = crt->lua;
     mtxp = crt->mctx->mutexp;
+    L = crt->lua;
 
     output_conn = TSTransformOutputVConnGet(contp);
     input_vio = TSVConnWriteVIOGet(contp);
@@ -178,6 +178,7 @@ launch:
 
         switch (rc) {
             case LUA_YIELD:         // coroutine yield
+                TSMutexUnlock(mtxp);
                 return 0;
 
             case 0:                 // coroutine success

@@ -122,7 +122,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     int                         ret;
     uint64_t                    req_id;
     TSCont                      contp;
-    lua_State                   *l;
+    lua_State                   *L;
     ts_lua_main_ctx             *main_ctx;
     ts_lua_http_ctx             *http_ctx;
     ts_lua_cont_info            *ci;
@@ -144,7 +144,7 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     http_ctx->rri = rri;
 
     ci = &http_ctx->cinfo;
-    l = ci->routine.lua;
+    L = ci->routine.lua;
 
     contp = TSContCreate(ts_lua_http_cont_handler, NULL);
     TSContDataSet(contp, http_ctx);
@@ -153,17 +153,17 @@ TSRemapDoRemap(void* ih, TSHttpTxn rh, TSRemapRequestInfo *rri)
     ci->mutex = TSContMutexGet((TSCont)rh);
 
     // push do_remap function on the stack, and no async operation should exist here.
-    lua_getglobal(l, TS_LUA_FUNCTION_REMAP);
+    lua_getglobal(L, TS_LUA_FUNCTION_REMAP);
 
-    if (lua_pcall(l, 0, 1, 0) != 0) {
-        ee("lua_pcall failed: %s", lua_tostring(l, -1));
+    if (lua_pcall(L, 0, 1, 0) != 0) {
+        ee("lua_pcall failed: %s", lua_tostring(L, -1));
         ret = TSREMAP_NO_REMAP;
 
     } else {
-        ret = lua_tointeger(l, -1);
+        ret = lua_tointeger(L, -1);
     }
 
-    lua_pop(l, 1);      // pop the result
+    lua_pop(L, 1);      // pop the result
 
     TSMutexUnlock(main_ctx->mutexp);
     TSHttpTxnHookAdd(rh, TS_HTTP_TXN_CLOSE_HOOK, contp);
