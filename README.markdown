@@ -49,7 +49,7 @@ This module embeds Lua, via the standard Lua 5.1 interpreter, into Apache Traffi
 
 >map http://a.foo.com/ http://inner.foo.com/ @plugin=/X/libtslua.so @pparam=/X/hdr.lua
 
-Sometimes we want to receive parameters and process them in the script, we should realize **'\__init__'** function in the lua script([sethost.lua](https://github.com/portl4t/ts-lua/blob/master/business/sethost.lua) is a reference), and we can write this in remap.config:
+Sometimes we want to receive parameters and process them in the script, we should realize **'\__init__'** function in the lua script(`sethost.lua` is a reference), and we can write this in remap.config:
 
 >map http://a.foo.com/ http://b.foo.com/ @plugin=/X/libtslua.so @pparam=/X/sethost.lua @pparam=a.st.com
 
