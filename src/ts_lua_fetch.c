@@ -200,7 +200,7 @@ static int
 ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetch_info *fi)
 {
     TSCont                  contp;
-    int                     tb, flags, host_len, rc, hdr, port;
+    int                     tb, cl, flags, host_len, rc, hdr, port, n;
     const char              *method, *key, *value, *body, *opt;
     const char              *addr, *ptr, *host;
     size_t                  method_len, key_len, value_len, body_len;
@@ -208,6 +208,7 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
     char                    c;
     struct sockaddr_in      clientaddr;
     char                    ipstr[32];
+    char                    buf[32];
 
     tb = lua_istable(L, -1);
 
@@ -306,6 +307,7 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
 
     /* header */
     hdr = 0;
+    cl = 0;
 
     if (tb) {
         lua_pushlstring(L, "header", sizeof("header") - 1);
@@ -320,6 +322,11 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
 
                 key = luaL_checklstring(L, -1, &key_len);
                 value = luaL_checklstring(L, -2, &value_len);
+
+                if (key_len == TS_MIME_LEN_CONTENT_LENGTH &&
+                        !strncasecmp(TS_MIME_FIELD_CONTENT_LENGTH, key, key_len)) {
+                    cl = 1;
+                }
 
                 TSFetchHeaderAdd(fi->fch, key, key_len, value, value_len);
 
@@ -356,9 +363,14 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
         }
     }
 
+    if (body_len > 0 && cl == 0) {      // add Content-Length header
+        n = sprintf(buf, "%zu", body_len);
+        TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_CONTENT_LENGTH, TS_MIME_LEN_CONTENT_LENGTH, buf, n);
+    }
+
     TSFetchLaunch(fi->fch);
 
-    if (body && body_len > 0) {
+    if (body_len > 0) {
         TSFetchWriteData(fi->fch, body, body_len);
     }
 
