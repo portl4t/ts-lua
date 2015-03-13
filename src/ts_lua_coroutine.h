@@ -65,10 +65,7 @@ typedef struct async_item {
 } ts_lua_async_item;
 
 
-inline ts_lua_async_item * ts_lua_async_create_item(TSCont cont, async_clean func, void *d, ts_lua_cont_info *ci);
-inline void ts_lua_async_destroy_item(ts_lua_async_item *node);
-
-inline void ts_lua_async_destroy_chain(ts_lua_async_item **head);
-inline void ts_lua_release_cont_info(ts_lua_cont_info *ci);
+ts_lua_async_item * ts_lua_async_create_item(TSCont cont, async_clean func, void *d, ts_lua_cont_info *ci);
+void ts_lua_release_cont_info(ts_lua_cont_info *ci);
 
 #endif

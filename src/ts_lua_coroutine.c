@@ -19,6 +19,8 @@
 #include "ts_lua_coroutine.h"
 
 static inline void ts_lua_async_push_item(ts_lua_async_item **head, ts_lua_async_item *node);
+static inline void ts_lua_async_destroy_item(ts_lua_async_item *node);
+static inline void ts_lua_async_destroy_chain(ts_lua_async_item **head);
 
 
 inline ts_lua_async_item *
