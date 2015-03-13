@@ -316,6 +316,9 @@ ts_lua_shared_dict_set(lua_State *L)
         return luaL_error(L, "key length is too long: %d", (int)key_len);
 
     val_len = 0;
+    nval = 0;
+    val = NULL;
+
     switch (vtype) {
 
         case LUA_TNUMBER:
