@@ -35,6 +35,8 @@
 #include <ts/remap.h>
 #include "ts_lua_coroutine.h"
 
+#define TS_LUA_RELEASE_VERSION                  "v0.1.6"
+
 #define TS_LUA_FUNCTION_REMAP                   "do_remap"
 #define TS_LUA_FUNCTION_POST_REMAP              "do_post_remap"
 #define TS_LUA_FUNCTION_CACHE_LOOKUP_COMPLETE   "do_cache_lookup_complete"

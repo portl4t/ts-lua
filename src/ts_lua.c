@@ -20,15 +20,12 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
-
 #include "ts_lua_util.h"
 
-#define TS_LUA_MAX_STATE_COUNT                  128
+#define TS_LUA_MAX_STATE_COUNT              128
 
 static uint64_t ts_lua_http_next_id = 0;
-
 static ts_lua_main_ctx *ts_lua_main_ctx_array = NULL;
-
 
 TSReturnCode
 TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
@@ -49,6 +46,8 @@ TSRemapInit(TSRemapInterface *api_info, char *errbuf, int errbuf_size)
     ret = ts_lua_create_vm(ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
 
     if (ret) {
+        ee("TSRemapInit failed, ts_lua version: %s", TS_LUA_RELEASE_VERSION);
+
         ts_lua_destroy_vm(ts_lua_main_ctx_array, TS_LUA_MAX_STATE_COUNT);
         TSfree(ts_lua_main_ctx_array);
         return TS_ERROR;
