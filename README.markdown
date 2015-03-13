@@ -71,7 +71,7 @@ https://github.com/portl4t/ts-lua/wiki/Doc
     git clone https://github.com/portl4t/ts-lua.git
     cd ts-lua/src
 
-**step2**: build, requires linux/freebsd (64bits is recommended)
+**step2**: modify Makefile to insure INC_PATH and LIB_PATH is right for trafficserver, lua-5.1 and tcl
 
     make
 
