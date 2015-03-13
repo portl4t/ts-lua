@@ -50,7 +50,6 @@ function process_combo(host)
                   'Content-Length: ' .. string.format('%d', string.len(body)) .. '\r\n\r\n' ..
                   body
 
-    print('done')
     ts.say(resp)
 end
 
@@ -61,5 +60,5 @@ function do_remap()
     end
 
     local h = ts.client_request.header['Host']
-    ts.http.server_intercept(process_combo, h)
+    ts.http.intercept(process_combo, h)
 end
