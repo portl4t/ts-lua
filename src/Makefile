@@ -1,6 +1,6 @@
 .SUFFIXES: .c .o .lo
 
-COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -g
+COMPILE = $(CC) -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -g -O
 INC_PATH = -Imodules -I/home/quehan/opt/master/include
 LIB_PATH = -L/usr/local/lib -lssl -llua-5.1 -lpcre -ltcl
 
