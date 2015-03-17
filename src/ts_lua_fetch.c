@@ -200,7 +200,8 @@ static int
 ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetch_info *fi)
 {
     TSCont                  contp;
-    int                     tb, cl, flags, host_len, rc, hdr, port, n;
+    int                     tb, flags, host_len, rc, port, n;
+    int                     cl, ht, ua;
     const char              *method, *key, *value, *body, *opt;
     const char              *addr, *ptr, *host;
     size_t                  method_len, key_len, value_len, body_len;
@@ -306,8 +307,7 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
     fi->fch = TSFetchCreate(contp, method, url, "HTTP/1.1", (struct sockaddr*)&clientaddr, flags);
 
     /* header */
-    hdr = 0;
-    cl = 0;
+    cl = ht = ua = 0;
 
     if (tb) {
         lua_pushlstring(L, "header", sizeof("header") - 1);
@@ -324,28 +324,31 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
                 value = luaL_checklstring(L, -2, &value_len);
 
                 if (key_len == TS_MIME_LEN_CONTENT_LENGTH &&
-                        !strncasecmp(TS_MIME_FIELD_CONTENT_LENGTH, key, key_len)) {
+                        !strncasecmp(TS_MIME_FIELD_CONTENT_LENGTH, key, key_len)) {     // Content-Length
                     cl = 1;
+
+                } else if (key_len == TS_MIME_LEN_HOST &&
+                        !strncasecmp(TS_MIME_FIELD_HOST, key, key_len)) {               // Host
+                    ht = 1;
+
+                } else if (key_len == TS_MIME_LEN_USER_AGENT &&
+                        !strncasecmp(TS_MIME_FIELD_USER_AGENT, key, key_len)) {         // User-Agent
+                    ua = 1;
                 }
 
                 TSFetchHeaderAdd(fi->fch, key, key_len, value, value_len);
 
                 lua_pop(L, 2);
             }
-
-            hdr = 1;
         }
 
         lua_pop(L, 1);
     }
 
-    if (hdr == 0) {
-        /* user agent */
-        TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT,
-                         TS_LUA_FETCH_USER_AGENT, sizeof(TS_LUA_FETCH_USER_AGENT)-1);
-
-        /* host */
+    /* Host */
+    if (ht == 0) {
         ptr = memchr(url, ':', url_len);
+
         if (ptr) {
             host = ptr + 3;
             left = url_len - (host - url);
@@ -359,8 +362,14 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
                 host_len = left;
             }
 
-            TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT, host, host_len);
+            TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_HOST, TS_MIME_LEN_HOST, host, host_len);
         }
+    }
+
+    /* User-Agent */
+    if (ua == 0) {
+        TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT,
+                         TS_LUA_FETCH_USER_AGENT, sizeof(TS_LUA_FETCH_USER_AGENT)-1);
     }
 
     if (body_len > 0 && cl == 0) {      // add Content-Length header
