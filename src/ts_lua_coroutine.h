@@ -16,8 +16,8 @@
   limitations under the License.
 */
 
-#ifndef _TS_LUA_ASYNC_H
-#define _TS_LUA_ASYNC_H
+#ifndef _TS_LUA_COROUTINE_H
+#define _TS_LUA_COROUTINE_H
 
 #include <stdio.h>
 #include <lua.h>
