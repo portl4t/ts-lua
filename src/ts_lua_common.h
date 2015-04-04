@@ -63,25 +63,22 @@
                             fprintf(stderr, " @%s:%d\n", __FILE__, __LINE__)
 
 
+/* for http config or cntl var */
 typedef struct {
     int64_t nvar;
     char    *svar;
 } ts_lua_var64_item;
 
-
-/* for http config or cntl var */
 typedef struct {
     int     nvar;
     char    *svar;
 } ts_lua_var_item;
-
 
 /* for dict */
 typedef struct {
     Tcl_HashTable   t;
     TSMutex         mutexp;
 } ts_lua_hash_map;
-
 
 typedef struct {
     uint16_t        ksize;      // sizeof(long) or strlen(key)
@@ -96,7 +93,6 @@ typedef struct {
     char            vtype;
 } ts_lua_shared_dict_item;
 
-
 typedef struct {
     char            name[TS_LUA_MAX_SHARED_DICT_NAME_LENGTH];
     ts_lua_hash_map map;
@@ -105,7 +101,6 @@ typedef struct {
     int             flags;
     int             initialized:1;
 } ts_lua_shared_dict;
-
 
 /* plugin instance conf */
 typedef struct {
@@ -121,7 +116,6 @@ typedef struct {
     int                 _last: 1;       // create current instance for the last ts_lua_main_ctx
 
 } ts_lua_instance_conf;
-
 
 /* lua state for http request */
 typedef struct {
@@ -170,7 +164,6 @@ typedef struct {
     int64_t             total;
 } ts_lua_http_transform_ctx;
 
-
 typedef struct {
     ts_lua_cont_info    cinfo;
 
@@ -200,4 +193,3 @@ typedef struct {
 } while (0)
 
 #endif
-

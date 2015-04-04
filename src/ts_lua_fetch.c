@@ -109,7 +109,7 @@ ts_lua_fetch(lua_State *L)
     ai = ts_lua_async_create_item(contp, ts_lua_fetch_multi_cleanup, fmi, ci);
     TSContDataSet(contp, ai);
 
-    return lua_yield(L, 0);;
+    return lua_yield(L, 0);
 }
 
 static int
@@ -193,7 +193,7 @@ ts_lua_fetch_multi(lua_State *L)
     ai = ts_lua_async_create_item(contp, ts_lua_fetch_multi_cleanup, (void*)fmi, ci);
     TSContDataSet(contp, ai);
 
-    return lua_yield(L, 0);;
+    return lua_yield(L, 0);
 }
 
 static int
