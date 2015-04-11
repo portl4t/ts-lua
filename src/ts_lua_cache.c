@@ -30,7 +30,6 @@ ts_lua_var_item ts_lua_cache_vars[] = {
     TS_LUA_MAKE_VAR_ITEM(TS_LUA_CACHE_WRITE)
 };
 
-
 static void ts_lua_inject_cache_variables(lua_State *L);
 
 static int ts_lua_cache_open(lua_State *L);
@@ -56,6 +55,7 @@ static void ts_lua_release_cache_info(ts_lua_cache_info *info, int destroy);
 void
 ts_lua_inject_cache_api(lua_State *L)
 {
+    /* variables */
     ts_lua_inject_cache_variables(L);
 
     /* ts.cache_open() */
@@ -158,7 +158,10 @@ ts_lua_cache_open(lua_State *L)
     ai = ts_lua_async_create_item(contp, ts_lua_cache_cleanup, info, ci);
 
     TSContDataSet(contp, ai);
+
     info->contp = contp;
+    info->ioh.buffer = TSIOBufferCreate();
+    info->ioh.reader = TSIOBufferReaderAlloc(info->ioh.buffer);
 
     if (operate == TS_LUA_CACHE_READ) {
         info->reserved.buffer = TSIOBufferCreate();
@@ -171,9 +174,6 @@ ts_lua_cache_open(lua_State *L)
         info->current_handler = &ts_lua_cache_open_write;
         action = TSCacheWrite(contp, key);
     }
-
-    info->ioh.buffer = TSIOBufferCreate();
-    info->ioh.reader = TSIOBufferReaderAlloc(info->ioh.buffer);
 
     if (TSActionDone(action)) {     // done
         return 1;
@@ -436,7 +436,7 @@ ts_lua_cache_open_read(ts_lua_cont_info *ci, ts_lua_cache_info *info, TSEvent ev
         TSContCall(ci->contp, TS_LUA_EVENT_COROUTINE_CONT, (void*)1);
 
     } else {
-        // return to the ts.cache_open
+        // return to the ts.cache_open synchronized
     }
 
     TSMutexUnlock(mtx);
@@ -460,7 +460,7 @@ ts_lua_cache_open_write(ts_lua_cont_info *ci, ts_lua_cache_info *info, TSEvent e
             info->cache_vc = vc;
             break;
 
-        default:                                            // error
+        default:                // error
             info->err = 1;
             break;
     }
@@ -478,7 +478,7 @@ ts_lua_cache_open_write(ts_lua_cont_info *ci, ts_lua_cache_info *info, TSEvent e
         TSContCall(ci->contp, TS_LUA_EVENT_COROUTINE_CONT, (void*)1);
 
     } else {
-        // return to the ts.cache_open
+        // return to the ts.cache_open synchronized
     }
 
     TSMutexUnlock(mtx);
@@ -551,8 +551,10 @@ ts_lua_cache_handle_read(ts_lua_cont_info *ci, ts_lua_cache_info *info, TSEvent 
 
         case TS_EVENT_VCONN_READ_READY:
             avail = TSIOBufferReaderAvail(info->ioh.reader);
-            TSIOBufferCopy(info->reserved.buffer, info->ioh.reader, avail, 0);
-            TSIOBufferReaderConsume(info->ioh.reader, avail);
+            if (avail > 0) {
+                TSIOBufferCopy(info->reserved.buffer, info->ioh.reader, avail, 0);
+                TSIOBufferReaderConsume(info->ioh.reader, avail);
+            }
 
             avail = TSIOBufferReaderAvail(info->reserved.reader);
             if (avail + info->already >= info->need) {
@@ -648,7 +650,6 @@ ts_lua_cache_key_create(const char *keystr, size_t key_len, const char *optstr, 
     urlBuf = NULL;
 
     if (url == 0) {
-        key = TSCacheKeyCreate();
         TSCacheKeyDigestSet(key, keystr, key_len);
 
     } else {
@@ -686,8 +687,10 @@ ts_lua_cache_key_create(const char *keystr, size_t key_len, const char *optstr, 
             goto fail;
         }
 
-        TSCacheKeyHostNameSet(key, host, host_len);
+        TSHandleMLocRelease(urlBuf, NULL, urlLoc);
         TSMBufferDestroy(urlBuf);
+
+        TSCacheKeyHostNameSet(key, host, host_len);
     }
 
     if (http) {
@@ -700,6 +703,7 @@ fail:
 
     TSCacheKeyDestroy(key);
     if (urlBuf) {
+        TSHandleMLocRelease(urlBuf, NULL, urlLoc);
         TSMBufferDestroy(urlBuf);
     }
 
@@ -951,6 +955,7 @@ ts_lua_release_cache_info(ts_lua_cache_info *info, int destroy)
     }
 
     TS_LUA_RELEASE_IO_HANDLE((&info->ioh));
+    TS_LUA_RELEASE_IO_HANDLE((&info->reserved));
 
     if (destroy) {
         TSfree(info);

@@ -26,6 +26,7 @@ typedef int (*cache_fn)(ts_lua_cont_info *ci, struct cache_info *info, TSEvent e
 
 typedef struct cache_info {
     TSCont              contp;              // should be destroyed only in cleanup
+
     TSCacheKey          cache_key;
     TSVConn             cache_vc;
     TSAction            cache_action;
@@ -35,7 +36,7 @@ typedef struct cache_info {
     int64_t             already;
     int64_t             need;
     int64_t             sz;
-    int64_t             seek;
+    int64_t             seek;               // Todo: for do_io_pread
     cache_fn            current_handler;
     int                 optype;
 

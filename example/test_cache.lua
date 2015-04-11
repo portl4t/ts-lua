@@ -29,7 +29,7 @@ function read_data(c)
                   nt
 
     if c == 'r' then
-        local fd = ts.cache_open('http://soowind.com/goodness.txt', TS_LUA_CACHE_READ)
+        local fd = ts.cache_open('transformer.txt', TS_LUA_CACHE_READ)
         if fd.hit then
             d = ts.cache_read(fd)
             ts.cache_close(fd)
@@ -40,19 +40,19 @@ function read_data(c)
         end
 
     elseif c == 'w' then
-        local rfd = ts.cache_open('http://soowind.com/goodness.txt', TS_LUA_CACHE_READ)
+        local rfd = ts.cache_open('transformer.txt', TS_LUA_CACHE_READ)
         local hit = rfd.hit
         ts.cache_close(rfd)
 
         if hit ~= true then
-            local fd = ts.cache_open('http://soowind.com/goodness.txt', TS_LUA_CACHE_WRITE)
-            local n = ts.cache_write(fd, 'The Last Emperor.')
+            local fd = ts.cache_open('transformer.txt', TS_LUA_CACHE_WRITE)
+            local n = ts.cache_write(fd, 'Optimus Prime.')
             print(string.format('write %d bytes', n))
             ts.cache_close(fd)
         end
 
     else
-        ts.cache_remove('http://soowind.com/goodness.txt')
+        ts.cache_remove('transformer.txt')
         print('removed')
     end
 

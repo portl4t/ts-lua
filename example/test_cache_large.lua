@@ -28,7 +28,7 @@ function read_data(c)
                   'Accept-Ranges: bytes\r\n\r\n' ..
                   nt
 
-    local rfd = ts.cache_open('http://soowind.com/sm.pdf', TS_LUA_CACHE_READ, 'uh')
+    local rfd = ts.cache_open('http://foo.com/large.pdf', TS_LUA_CACHE_READ, 'uh')
 
     if rfd.hit then
         while ts.cache_eof(rfd) ~= true do
