@@ -236,7 +236,7 @@ ts_lua_cache_read(lua_State *L)
     }
 
     if (info->optype != TS_LUA_CACHE_READ) {
-        return luaL_error(L, "'ts.cache_read' is reading from write vc");
+        return luaL_error(L, "'ts.cache_read' is reading from invalid vc");
     }
 
     if (info->eof || info->err) {
@@ -336,7 +336,7 @@ ts_lua_cache_write(lua_State *L)
     lua_pop(L, 1);
 
     if (info->optype != TS_LUA_CACHE_WRITE) {
-        return luaL_error(L, "'ts.cache_write' is writing to read vc");
+        return luaL_error(L, "'ts.cache_write' is writing to invalid vc");
     }
 
     if (info->err) {
