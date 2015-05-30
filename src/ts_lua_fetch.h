@@ -20,6 +20,7 @@
 #define _TS_LUA_FETCH_H
 
 #include "ts_lua_common.h"
+#include "lib/ts_fetcher.h"
 
 struct fetch_multi_info;
 
@@ -29,7 +30,7 @@ typedef struct {
 
     TSIOBuffer                  buffer;
     TSIOBufferReader            reader;
-    TSFetchSM                   fch;
+    http_fetcher                *fch;
 
     int                         over:1;
     int                         failed:1;

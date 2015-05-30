@@ -16,8 +16,8 @@
   limitations under the License.
 */
 
-#include<sys/socket.h>
-#include<netinet/in.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include "ts_lua_util.h"
@@ -274,7 +274,7 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
     }
 
     /* option */
-    flags = TS_FETCH_FLAGS_DECHUNK;     // dechunk the body default
+    flags = TS_FLAG_FETCH_FORCE_DECHUNK;     // dechunk the body by default
 
     if (tb) {
         lua_pushlstring(L, "option", sizeof("option") - 1);
@@ -288,7 +288,7 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
 
                 switch (c) {
                     case 'c':
-                        flags &= (~TS_FETCH_FLAGS_DECHUNK);
+                        flags &= (~TS_FLAG_FETCH_FORCE_DECHUNK);
                         break;
 
                     default:
@@ -304,7 +304,8 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
     TSContDataSet(contp, fi);
 
     fi->contp = contp;
-    fi->fch = TSFetchCreate(contp, method, url, "HTTP/1.1", (struct sockaddr*)&clientaddr, flags);
+    fi->fch = ts_http_fetcher_create(contp, (struct sockaddr*)&clientaddr, flags);
+    ts_http_fetcher_init(fi->fch, method, method_len, url, url_len);
 
     /* header */
     cl = ht = ua = 0;
@@ -336,7 +337,7 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
                     ua = 1;
                 }
 
-                TSFetchHeaderAdd(fi->fch, key, key_len, value, value_len);
+                ts_http_fetcher_add_header(fi->fch, key, key_len, value, value_len);
 
                 lua_pop(L, 2);
             }
@@ -362,25 +363,25 @@ ts_lua_fetch_one_item(lua_State *L, const char *url, size_t url_len, ts_lua_fetc
                 host_len = left;
             }
 
-            TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_HOST, TS_MIME_LEN_HOST, host, host_len);
+            ts_http_fetcher_add_header(fi->fch, TS_MIME_FIELD_HOST, TS_MIME_LEN_HOST, host, host_len);
         }
     }
 
     /* User-Agent */
     if (ua == 0) {
-        TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT,
-                         TS_LUA_FETCH_USER_AGENT, sizeof(TS_LUA_FETCH_USER_AGENT)-1);
+        ts_http_fetcher_add_header(fi->fch, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT,
+                                   TS_LUA_FETCH_USER_AGENT, sizeof(TS_LUA_FETCH_USER_AGENT)-1);
     }
 
     if (body_len > 0 && cl == 0) {      // add Content-Length header
         n = sprintf(buf, "%zu", body_len);
-        TSFetchHeaderAdd(fi->fch, TS_MIME_FIELD_CONTENT_LENGTH, TS_MIME_LEN_CONTENT_LENGTH, buf, n);
+        ts_http_fetcher_add_header(fi->fch, TS_MIME_FIELD_CONTENT_LENGTH, TS_MIME_LEN_CONTENT_LENGTH, buf, n);
     }
 
-    TSFetchLaunch(fi->fch);
+    ts_http_fetcher_launch(fi->fch);
 
     if (body_len > 0) {
-        TSFetchWriteData(fi->fch, body, body_len);
+        ts_http_fetcher_append_data(fi->fch, body, body_len);
     }
 
     return 0;
@@ -390,34 +391,29 @@ static int
 ts_lua_fetch_handler(TSCont contp, TSEvent ev, void *edata)
 {
     int                         event;
-    char                        *from;
-    int64_t                     n, wavail;
-    TSIOBufferBlock             blk;
+    int64_t                     avail;
 
     ts_lua_fetch_info           *fi;
     ts_lua_fetch_multi_info     *fmi;
+    http_fetcher                *fch;
 
     event = (int)ev;
     fi = TSContDataGet(contp);
     fmi = fi->fmi;
+    fch = fi->fch;
 
     switch (event) {
 
-        case TS_FETCH_EVENT_EXT_HEAD_READY:
-        case TS_FETCH_EVENT_EXT_HEAD_DONE:
+        case TS_EVENT_FETCH_HEADER_DONE:
             break;
 
-        case TS_FETCH_EVENT_EXT_BODY_READY:
-        case TS_FETCH_EVENT_EXT_BODY_DONE:
+        case TS_EVENT_FETCH_BODY_READY:
+        case TS_EVENT_FETCH_BODY_COMPLETE:
+            avail = TSIOBufferReaderAvail(fch->body_reader);
+            TSIOBufferCopy(fi->buffer, fch->body_reader, avail, 0);
+            ts_http_fetcher_consume_resp_body(fch, avail);
 
-            do {
-                blk = TSIOBufferStart(fi->buffer);
-                from = TSIOBufferBlockWriteStart(blk, &wavail);
-                n = TSFetchReadData(fi->fch, from, wavail);
-                TSIOBufferProduce(fi->buffer, n);
-            } while (n == wavail);
-
-            if (event == TS_FETCH_EVENT_EXT_BODY_DONE) {    // fetch over
+            if (event == TS_EVENT_FETCH_BODY_COMPLETE) {        // fetch over
                 fi->over = 1;
             }
 
@@ -447,8 +443,8 @@ ts_lua_fill_one_result(lua_State *L, ts_lua_fetch_info *fi)
     TSMLoc                      field_loc, next_field_loc;
     TSHttpStatus                status;
 
-    bufp = TSFetchRespHdrMBufGet(fi->fch);
-    hdrp = TSFetchRespHdrMLocGet(fi->fch);
+    bufp = fi->fch->hdr_bufp;
+    hdrp = fi->fch->hdr_loc;;
 
     // result table
     lua_newtable(L);
@@ -576,7 +572,7 @@ ts_lua_destroy_fetch_multi_info(ts_lua_fetch_multi_info *fmi)
         }
 
         if (fi->fch) {
-            TSFetchDestroy(fi->fch);
+            ts_http_fetcher_destroy(fi->fch);
         }
 
         if (fi->contp) {
