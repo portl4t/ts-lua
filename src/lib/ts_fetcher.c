@@ -87,6 +87,7 @@ ts_http_fetcher_create(TSCont contp, struct sockaddr *addr, int flags)
     fch->chunked = 0;
     fch->error = 0;
     fch->launched = 0;
+    fch->stopped = 0;
 
     return fch;
 }
@@ -530,8 +531,15 @@ ts_http_fetcher_callback_sm(http_fetcher *fch, TSEvent event)
         return -1;
     }
 
-    if (event == TS_EVENT_FETCH_BODY_QUIET)
+    if (event == TS_EVENT_FETCH_BODY_QUIET || fch->stopped) {
         return 0;
+
+    } else if (event != TS_EVENT_FETCH_HEADER_DONE &&
+               event != TS_EVENT_FETCH_BODY_READY &&
+               event != TS_EVENT_FETCH_BODY_QUIET) {
+
+        fch->stopped = 1;
+    }
 
     fch->ref++;
 
