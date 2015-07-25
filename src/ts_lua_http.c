@@ -205,12 +205,19 @@ ts_lua_http_set_resp(lua_State *L)
 static int
 ts_lua_http_redirect(lua_State *L)
 {
+    int                 n, status;
     const char          *start, *end;
     const char          *url;
     size_t              url_len;
     ts_lua_http_ctx     *http_ctx;
 
     http_ctx = ts_lua_get_http_ctx(L);
+
+    n = lua_gettop(L);
+
+    if (n < 1) {
+        return luaL_error(L, "ts.http.redirect expects at least one argument");
+    }
 
     url = luaL_checklstring(L, 1, &url_len);
 
@@ -225,6 +232,13 @@ ts_lua_http_redirect(lua_State *L)
     }
 
     http_ctx->rri->redirect = 1;
+
+    if (n >= 2) {
+        status = luaL_checkinteger(L, 2);
+        if (status > 0) {
+            TSHttpTxnSetHttpRetStatus(http_ctx->txnp, status);
+        }
+    }
 
     return 0;
 }
