@@ -17,6 +17,7 @@
 */
 
 
+#include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include "ts_lua_util.h"
@@ -466,6 +467,10 @@ ts_lua_client_request_get_uri(lua_State *L)
     path = TSUrlPathGet(http_ctx->client_request_bufp, http_ctx->client_request_url, &path_len);
 
     uri_len = snprintf(uri, TS_LUA_MAX_URL_LENGTH, "/%.*s", path_len, path);
+
+    if (uri_len >= TS_LUA_MAX_URL_LENGTH) {
+        uri_len = strlen(uri);
+    }
 
     lua_pushlstring(L, uri, uri_len);
 
